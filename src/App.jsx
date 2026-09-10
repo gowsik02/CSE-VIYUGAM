@@ -14,7 +14,7 @@ import Reports from './pages/Reports';
 
 import { getRegistrations } from './services/api';
 import { normalizeRegistrationData } from './utils/dataNormalizer';
-import { getVerifiedKeys, toggleVerificationStatus } from './utils/verificationStorage';
+import { getVerificationState, toggleVerificationStatus } from './utils/verificationStorage';
 import { RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Papa from 'papaparse';
 
@@ -23,8 +23,8 @@ export default function App() {
   const [participantsTab, setParticipantsTab] = useState('new');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Verified Keys Set in local storage
-  const [verifiedKeys, setVerifiedKeys] = useState(() => getVerifiedKeys());
+  // Verification State (verified & unverified key sets) in local storage
+  const [verificationState, setVerificationState] = useState(() => getVerificationState());
 
   // Raw API Data
   const [rawHeaders, setRawHeaders] = useState([]);
@@ -62,6 +62,13 @@ export default function App() {
     }
   };
 
+  // Jump to Directory filtered by specific college
+  const handleViewCollegeInDirectory = (collegeName) => {
+    setSelectedCollege(collegeName);
+    setActivePage('participants');
+    setParticipantsTab('all');
+  };
+
   // Fetch Data Function
   const fetchData = useCallback(async (showToast = true) => {
     setIsFetching(true);
@@ -73,8 +80,8 @@ export default function App() {
         setRawRows(res.data || []);
         setLastUpdated(res.lastUpdated || new Date().toISOString());
 
-        const currentVerifiedKeys = getVerifiedKeys();
-        const normalized = normalizeRegistrationData(res.data, res.headers, currentVerifiedKeys);
+        const currentVerificationState = getVerificationState();
+        const normalized = normalizeRegistrationData(res.data, res.headers, currentVerificationState);
         setNormalizedData(normalized.normalizedData);
 
         if (showToast) {
@@ -99,11 +106,11 @@ export default function App() {
     let targetParticipant = typeof participantOrId === 'object' ? participantOrId : normalizedData.find(d => d.id === participantOrId);
     if (!targetParticipant) return;
 
-    const updatedKeys = toggleVerificationStatus(targetParticipant);
-    setVerifiedKeys(updatedKeys);
+    const updatedState = toggleVerificationStatus(targetParticipant);
+    setVerificationState(updatedState);
 
-    // Re-normalize dataset
-    const reNormalized = normalizeRegistrationData(rawRows, rawHeaders, updatedKeys);
+    // Re-normalize dataset with updated local storage state
+    const reNormalized = normalizeRegistrationData(rawRows, rawHeaders, updatedState);
     setNormalizedData(reNormalized.normalizedData);
 
     if (selectedParticipant && selectedParticipant.id === targetParticipant.id) {
@@ -330,6 +337,8 @@ export default function App() {
                 <Colleges
                   data={filteredData}
                   onExportCSV={handleExportCSV}
+                  onToggleVerify={handleToggleVerify}
+                  onViewInDirectory={handleViewCollegeInDirectory}
                 />
               )}
 

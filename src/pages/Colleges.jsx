@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
-import { Building2, Download } from 'lucide-react';
+import { Building2, Download, Eye, ArrowRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calculateCollegeParticipation } from '../utils/analytics';
 import { formatCurrency, formatNumber } from '../utils/formatters';
+import CollegeDetailsModal from '../components/CollegeDetailsModal';
 
-export default function Colleges({ data, onExportCSV }) {
+export default function Colleges({ data, onExportCSV, onToggleVerify, onViewInDirectory }) {
   const [showAll, setShowAll] = useState(false);
+  const [selectedCollegeForModal, setSelectedCollegeForModal] = useState(null);
+
   const collegeMetrics = calculateCollegeParticipation(data, showAll ? 9999 : 10);
   const displayedColleges = showAll ? collegeMetrics.allColleges : collegeMetrics.topColleges;
+
+  // Filter participants for modal
+  const collegeParticipants = selectedCollegeForModal
+    ? data.filter(d => d.college.toLowerCase().trim() === selectedCollegeForModal.toLowerCase().trim())
+    : [];
 
   return (
     <div className="space-y-6">
@@ -58,12 +66,17 @@ export default function Colleges({ data, onExportCSV }) {
         </div>
       </div>
 
-      {/* College Ranking Table */}
+      {/* Detailed Institutional Table (Interactive) */}
       <div className="bg-white rounded-xl border border-neutral-200 shadow-xs">
         <div className="p-4 border-b border-neutral-200 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-neutral-900 font-outfit uppercase tracking-wider">
-            Detailed Institutional Table
-          </h3>
+          <div>
+            <h3 className="text-sm font-bold text-neutral-900 font-outfit uppercase tracking-wider">
+              Detailed Institutional Table
+            </h3>
+            <p className="text-[11px] text-neutral-500 mt-0.5">
+              Click any college name below to view all registered students from that institution
+            </p>
+          </div>
           <button
             onClick={() => setShowAll(!showAll)}
             className="px-3 py-1.5 rounded-lg bg-burgundy-50 text-burgundy-800 border border-burgundy-200 text-xs font-semibold hover:bg-burgundy-100 transition-colors"
@@ -78,15 +91,20 @@ export default function Colleges({ data, onExportCSV }) {
               <tr>
                 <th className="py-3 px-4 w-12 text-center">Rank</th>
                 <th className="py-3 px-4">College / Institution Name</th>
-                <th className="py-3 px-4 text-center">Participants</th>
+                <th className="py-3 px-4 text-center">Registered Students</th>
                 <th className="py-3 px-4 text-center">% Share</th>
-                <th className="py-3 px-4 text-center">Verified Regs</th>
+                <th className="py-3 px-4 text-center">Verified</th>
                 <th className="py-3 px-4 text-right">Amount Collected</th>
+                <th className="py-3 px-4 text-center">Inspect</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200">
               {displayedColleges.map((item) => (
-                <tr key={item.rank} className="hover:bg-neutral-50/80 transition-colors">
+                <tr
+                  key={item.rank}
+                  onClick={() => setSelectedCollegeForModal(item.college)}
+                  className="hover:bg-burgundy-50/40 cursor-pointer transition-colors group"
+                >
                   <td className="py-3 px-4 text-center font-bold font-mono text-neutral-700">
                     {item.rank <= 3 ? (
                       <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-900 text-xs font-bold">
@@ -96,8 +114,11 @@ export default function Colleges({ data, onExportCSV }) {
                       `#${item.rank}`
                     )}
                   </td>
-                  <td className="py-3 px-4 font-semibold text-neutral-900">
-                    {item.college}
+                  <td className="py-3 px-4 font-bold text-neutral-900 group-hover:text-burgundy-800 flex items-center gap-2">
+                    <span>{item.college}</span>
+                    <span className="text-[10px] text-burgundy-800 opacity-0 group-hover:opacity-100 font-semibold transition-opacity">
+                      (View Students →)
+                    </span>
                   </td>
                   <td className="py-3 px-4 text-center font-bold text-burgundy-800">
                     {formatNumber(item.participants)}
@@ -111,12 +132,35 @@ export default function Colleges({ data, onExportCSV }) {
                   <td className="py-3 px-4 text-right font-bold text-neutral-900">
                     {formatCurrency(item.amount)}
                   </td>
+                  <td className="py-3 px-4 text-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCollegeForModal(item.college);
+                      }}
+                      className="p-1 rounded text-neutral-400 hover:text-burgundy-800 hover:bg-neutral-100"
+                      title="Inspect college participants"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* College Roster Modal */}
+      {selectedCollegeForModal && (
+        <CollegeDetailsModal
+          collegeName={selectedCollegeForModal}
+          participants={collegeParticipants}
+          onClose={() => setSelectedCollegeForModal(null)}
+          onToggleVerify={onToggleVerify}
+          onViewInDirectory={onViewInDirectory}
+        />
+      )}
 
     </div>
   );

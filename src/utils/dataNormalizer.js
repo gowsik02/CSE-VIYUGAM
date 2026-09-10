@@ -18,6 +18,40 @@ const COLUMN_ALIASES = {
   generalEvent: ['select event', 'event name', 'event', 'registered event', 'events'],
 };
 
+/**
+ * Normalizes and groups variations of college names case-insensitively.
+ * Converts "ppg institute of technology", "PPG INSTITUTE OF TECHNOLOGY", etc. -> "PPG Institute of Technology"
+ */
+export function normalizeCollegeName(rawCollege, canonicalMap = new Map()) {
+  if (!rawCollege) return 'Unspecified Institution';
+  
+  // Clean string: trim, collapse spaces, lowercase for matching key
+  const cleaned = String(rawCollege).trim().replace(/\s+/g, ' ');
+  if (!cleaned) return 'Unspecified Institution';
+
+  const lookupKey = cleaned.toLowerCase();
+
+  // If we already have a canonical title-cased name for this key, return it
+  if (canonicalMap.has(lookupKey)) {
+    return canonicalMap.get(lookupKey);
+  }
+
+  // Convert to clean Title Case for display
+  const titleCased = cleaned.split(' ').map(word => {
+    if (word.length <= 2 && ['of', 'in', 'at', 'nd', 'st', 'rd', 'th'].includes(word.toLowerCase())) {
+      return word.toLowerCase();
+    }
+    // Keep acronyms like PPG, CSE, IT, KIT, PSG uppercase
+    if (['ppg', 'cse', 'it', 'kit', 'psg', 'skcet', 'srec', 'cit', 'gct'].includes(word.toLowerCase())) {
+      return word.toUpperCase();
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+
+  canonicalMap.set(lookupKey, titleCased);
+  return titleCased;
+}
+
 export function detectColumnMapping(headers = []) {
   const mapping = {};
   const lowerHeaders = headers.map(h => String(h || '').trim().toLowerCase());
@@ -63,8 +97,19 @@ export function parseEvents(row, mapping) {
   return Array.from(events);
 }
 
-export function normalizeRegistrationData(rawRows = [], headers = [], verifiedSet = new Set()) {
+export function normalizeRegistrationData(rawRows = [], headers = [], verificationState = {}) {
   const mapping = detectColumnMapping(headers);
+  const canonicalCollegeMap = new Map();
+
+  let verifiedKeys = new Set();
+  let unverifiedKeys = new Set();
+
+  if (verificationState instanceof Set) {
+    verifiedKeys = verificationState;
+  } else if (verificationState && typeof verificationState === 'object') {
+    verifiedKeys = verificationState.verifiedKeys || new Set();
+    unverifiedKeys = verificationState.unverifiedKeys || new Set();
+  }
 
   const normalized = rawRows.map((row, index) => {
     const rawName = row[mapping.name] || '';
@@ -78,32 +123,47 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verifiedSe
     const rawAmount = row[mapping.amount];
     const rawTimestamp = row[mapping.timestamp] || '';
 
-    const id = `REG-${String(index + 1).padStart(4, '0')}`;
-    const name = String(rawName).trim() || `Participant #${index + 1}`;
-    const college = String(rawCollege).trim() || 'Unspecified Institution';
+    const rowIndex = row._rowIndex || index + 1;
+    const id = `REG-${String(rowIndex).padStart(4, '0')}`;
+    const name = String(rawName).trim() || `Participant #${rowIndex}`;
+    
+    // Standardize & group college names case-insensitively
+    const college = normalizeCollegeName(rawCollege, canonicalCollegeMap);
+    
     const email = String(rawEmail).trim().toLowerCase();
     const phone = String(rawPhone).trim();
     const department = String(rawDept).trim() || 'CSE / IT';
     const year = String(rawYear).trim() || 'N/A';
     const transactionId = String(rawTxnId).trim();
 
-    // Check candidate keys against persistent verified set
     const candidateKeys = [
       id,
-      transactionId ? `txn_${transactionId}` : null,
-      email ? `email_${email}` : null,
-      phone ? `phone_${phone}` : null,
-      name && college ? `namecol_${name.toLowerCase()}_${college.toLowerCase()}` : null,
+      `row_${rowIndex}`,
+      transactionId && transactionId.length > 2 ? `txn_${transactionId}` : null,
+      email && email.length > 3 ? `email_${email}` : null,
+      phone && phone.length > 4 ? `phone_${phone}` : null,
+      name && college ? `namecol_${name.toLowerCase().trim()}_${college.toLowerCase().trim()}` : null,
     ].filter(Boolean);
 
-    const isVerified = candidateKeys.some(k => verifiedSet.has(k)) || (transactionId.length > 4 && rawStatus.toLowerCase().includes('paid'));
+    const isExplicitlyVerified = candidateKeys.some(k => verifiedKeys.has(k));
+    const isExplicitlyUnverified = candidateKeys.some(k => unverifiedKeys.has(k));
+
+    let isVerified = false;
+    if (isExplicitlyVerified) {
+      isVerified = true;
+    } else if (isExplicitlyUnverified) {
+      isVerified = false;
+    } else {
+      isVerified = transactionId.length > 4 && rawStatus.toLowerCase().includes('paid');
+    }
+
     const paymentStatus = isVerified ? 'Verified' : 'New / Pending';
     const amount = parseAmount(rawAmount);
     const events = parseEvents(row, mapping);
 
     return {
       id,
-      rowIndex: row._rowIndex || index + 1,
+      rowIndex,
       name,
       college,
       email,
