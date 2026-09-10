@@ -247,7 +247,7 @@ export default function App() {
         </div>
       )}
 
-      <div className="flex-1 flex max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 gap-6">
+      <div className="flex-1 flex w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 gap-6">
         
         <Sidebar
           activePage={activePage}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Download, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, Clock, RotateCcw, Filter, UserCheck, ShieldCheck } from 'lucide-react';
-import { formatCurrency } from '../utils/formatters';
+import { Download, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, Clock, RotateCcw, Filter, UserCheck, Calendar } from 'lucide-react';
+import { formatCurrency, formatDate } from '../utils/formatters';
 
 export default function Participants({ data, initialTab = 'new', onSelectParticipant, onToggleVerify, onExportCSV }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -147,6 +147,7 @@ export default function Participants({ data, initialTab = 'new', onSelectPartici
                 </div>
               </th>
               <th className="py-3.5 px-4">Contact</th>
+              <th className="py-3.5 px-4">Date & Time Registered</th>
               <th className="py-3.5 px-4">Dept / Year</th>
               <th className="py-3.5 px-4">Events</th>
               <th className="py-3.5 px-4 cursor-pointer hover:text-neutral-900" onClick={() => handleSort('amount')}>
@@ -167,7 +168,7 @@ export default function Participants({ data, initialTab = 'new', onSelectPartici
           <tbody className="divide-y divide-neutral-100 bg-white">
             {paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-12 text-center text-neutral-400 font-medium">
+                <td colSpan={10} className="py-12 text-center text-neutral-400 font-medium">
                   No records in "{activeTab}" section matching filters.
                 </td>
               </tr>
@@ -205,6 +206,13 @@ export default function Participants({ data, initialTab = 'new', onSelectPartici
                       {item.transactionId && (
                         <div className="text-[10px] text-neutral-400 font-mono">Txn: {item.transactionId}</div>
                       )}
+                    </td>
+
+                    <td className="py-3.5 px-4 text-neutral-700 text-[11px]">
+                      <div className="font-bold text-neutral-800 flex items-center gap-1 font-mono text-[10px]">
+                        <Clock className="h-3 w-3 text-burgundy-800 shrink-0" />
+                        {formatDate(item.timestamp)}
+                      </div>
                     </td>
 
                     <td className="py-3.5 px-4 text-neutral-600 text-[11px] font-medium">

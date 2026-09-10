@@ -1,6 +1,6 @@
 import React from 'react';
-import { X, User, Building, Mail, Phone, Award, FileText, CheckCircle, RotateCcw } from 'lucide-react';
-import { formatCurrency } from '../utils/formatters';
+import { X, User, Building, Mail, Phone, Award, FileText, CheckCircle, RotateCcw, Clock, Calendar } from 'lucide-react';
+import { formatCurrency, formatDate } from '../utils/formatters';
 
 export default function ParticipantDetailModal({ participant, onClose, onToggleVerify }) {
   if (!participant) return null;
@@ -84,6 +84,22 @@ export default function ParticipantDetailModal({ participant, onClose, onToggleV
               <span className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider block">Fee Amount</span>
               <span className="font-extrabold text-neutral-900 mt-1 block text-base font-mono">
                 {formatCurrency(participant.amount)}
+              </span>
+            </div>
+
+            {/* Date & Time Registered */}
+            <div className="p-3 rounded-xl bg-burgundy-50/40 border border-burgundy-100/80 col-span-2 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold text-burgundy-800/80 uppercase tracking-wider block">
+                  Date & Time Registered
+                </span>
+                <span className="font-extrabold text-neutral-900 flex items-center gap-1.5 mt-1 text-xs">
+                  <Clock className="h-3.5 w-3.5 text-burgundy-800 shrink-0" />
+                  {formatDate(participant.timestamp)}
+                </span>
+              </div>
+              <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded-md border border-burgundy-200/80 text-burgundy-900 font-bold">
+                {participant.timestamp ? 'Live Sync' : 'Form Submission'}
               </span>
             </div>
 
