@@ -1,0 +1,131 @@
+/**
+ * Dynamic Column Mapping and Data Normalizer Engine for CSE VIYUGAM
+ */
+
+const COLUMN_ALIASES = {
+  name: ['participant name', 'full name', 'student name', 'name'],
+  college: ['collage name', 'college name', 'institution', 'collage', 'college', 'institute', 'organization'],
+  email: ['email address', 'email', 'e-mail'],
+  phone: ['mobile number', 'phone number', 'contact number', 'mobile', 'phone', 'contact', 'whatsapp'],
+  department: ['department', 'dept', 'branch', 'stream'],
+  year: ['year of study', 'year', 'study year', 'grade'],
+  amount: ['registration fee', 'amount', 'payment amount', 'fee', 'paid amount'],
+  paymentStatus: ['payment status', 'status', 'payment', 'paid status', 'transaction status'],
+  transactionId: ['transaction id', 'txn id', 'upi transaction id', 'utr', 'payment id'],
+  timestamp: ['timestamp', 'registration date', 'date', 'time'],
+  techEvents: ['select the technical events', 'technical events', 'technical event'],
+  nonTechEvents: ['select the non-technical events', 'non-technical events', 'non-technical event'],
+  generalEvent: ['select event', 'event name', 'event', 'registered event', 'events'],
+};
+
+export function detectColumnMapping(headers = []) {
+  const mapping = {};
+  const lowerHeaders = headers.map(h => String(h || '').trim().toLowerCase());
+
+  Object.entries(COLUMN_ALIASES).forEach(([fieldKey, aliases]) => {
+    let foundIndex = lowerHeaders.findIndex(h => aliases.includes(h));
+    if (foundIndex === -1) {
+      foundIndex = lowerHeaders.findIndex(h => aliases.some(alias => h.includes(alias)));
+    }
+    if (foundIndex !== -1) {
+      mapping[fieldKey] = headers[foundIndex];
+    }
+  });
+
+  return mapping;
+}
+
+export function parseAmount(val) {
+  if (val === undefined || val === null) return 250;
+  const str = String(val).replace(/[^0-9.]/g, '');
+  const num = parseFloat(str);
+  if (!isNaN(num) && num > 0) return num;
+  return 250;
+}
+
+export function parseEvents(row, mapping) {
+  const events = new Set();
+  const addEventString = (str) => {
+    if (!str) return;
+    const parts = String(str).split(/[,;/]+/);
+    parts.forEach(p => {
+      const cleaned = p.trim();
+      if (cleaned && cleaned.length > 1 && !['none', 'nil', 'n/a'].includes(cleaned.toLowerCase())) {
+        events.add(cleaned);
+      }
+    });
+  };
+
+  if (mapping.techEvents && row[mapping.techEvents]) addEventString(row[mapping.techEvents]);
+  if (mapping.nonTechEvents && row[mapping.nonTechEvents]) addEventString(row[mapping.nonTechEvents]);
+  if (mapping.generalEvent && row[mapping.generalEvent]) addEventString(row[mapping.generalEvent]);
+
+  return Array.from(events);
+}
+
+export function normalizeRegistrationData(rawRows = [], headers = [], verifiedSet = new Set()) {
+  const mapping = detectColumnMapping(headers);
+
+  const normalized = rawRows.map((row, index) => {
+    const rawName = row[mapping.name] || '';
+    const rawCollege = row[mapping.college] || '';
+    const rawEmail = row[mapping.email] || '';
+    const rawPhone = row[mapping.phone] || '';
+    const rawDept = row[mapping.department] || '';
+    const rawYear = row[mapping.year] || '';
+    const rawTxnId = row[mapping.transactionId] || '';
+    const rawStatus = row[mapping.paymentStatus] || '';
+    const rawAmount = row[mapping.amount];
+    const rawTimestamp = row[mapping.timestamp] || '';
+
+    const id = `REG-${String(index + 1).padStart(4, '0')}`;
+    const name = String(rawName).trim() || `Participant #${index + 1}`;
+    const college = String(rawCollege).trim() || 'Unspecified Institution';
+    const email = String(rawEmail).trim().toLowerCase();
+    const phone = String(rawPhone).trim();
+    const department = String(rawDept).trim() || 'CSE / IT';
+    const year = String(rawYear).trim() || 'N/A';
+    const transactionId = String(rawTxnId).trim();
+
+    // Check candidate keys against persistent verified set
+    const candidateKeys = [
+      id,
+      transactionId ? `txn_${transactionId}` : null,
+      email ? `email_${email}` : null,
+      phone ? `phone_${phone}` : null,
+      name && college ? `namecol_${name.toLowerCase()}_${college.toLowerCase()}` : null,
+    ].filter(Boolean);
+
+    const isVerified = candidateKeys.some(k => verifiedSet.has(k)) || (transactionId.length > 4 && rawStatus.toLowerCase().includes('paid'));
+    const paymentStatus = isVerified ? 'Verified' : 'New / Pending';
+    const amount = parseAmount(rawAmount);
+    const events = parseEvents(row, mapping);
+
+    return {
+      id,
+      rowIndex: row._rowIndex || index + 1,
+      name,
+      college,
+      email,
+      phone,
+      department,
+      year,
+      amount,
+      isVerified,
+      paymentStatus,
+      transactionId,
+      events,
+      timestamp: rawTimestamp,
+      rawRow: row,
+    };
+  });
+
+  return {
+    normalizedData: normalized,
+    columnMapping: mapping,
+    detectedFields: {
+      hasEvents: normalized.some(r => r.events.length > 0),
+      hasTimestamp: normalized.some(r => r.timestamp !== ''),
+    },
+  };
+}

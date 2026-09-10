@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Production build
+dist/
+build/
+
+# Environment variables & secrets
+.env
+.env.local
+.env.development.local
+.env.production.local
+credentials.json
+service-account-key.json
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
