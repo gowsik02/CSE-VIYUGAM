@@ -279,6 +279,8 @@ export default function App() {
               onResetFilters={handleResetFilters}
               totalFilteredCount={filteredData.length}
               totalRawCount={normalizedData.length}
+              allParticipants={normalizedData}
+              onSelectParticipant={setSelectedParticipant}
             />
           )}
 
@@ -354,6 +356,8 @@ export default function App() {
                 <Events
                   data={filteredData}
                   onExportCSV={handleExportCSV}
+                  onSelectParticipant={setSelectedParticipant}
+                  onToggleVerify={handleToggleVerify}
                 />
               )}
 

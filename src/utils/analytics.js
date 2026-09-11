@@ -197,6 +197,44 @@ export function calculateEventParticipation(data = []) {
     .sort((a, b) => b.count - a.count);
 }
 
+export function calculateEventDetailedBreakdown(data = []) {
+  const eventMap = {};
+
+  data.forEach(item => {
+    if (Array.isArray(item.events) && item.events.length > 0) {
+      item.events.forEach(eventName => {
+        if (eventName) {
+          if (!eventMap[eventName]) {
+            eventMap[eventName] = {
+              eventName,
+              count: 0,
+              participants: [],
+            };
+          }
+
+          eventMap[eventName].count += 1;
+          eventMap[eventName].participants.push({
+            sNo: eventMap[eventName].count,
+            id: item.id,
+            rowIndex: item.rowIndex,
+            name: item.name || 'Participant',
+            college: item.college || 'Unspecified Institution',
+            department: item.department || 'N/A',
+            year: item.year || 'N/A',
+            phone: item.phone || '',
+            email: item.email || '',
+            isVerified: item.isVerified || false,
+            timestamp: item.timestamp || '',
+          });
+        }
+      });
+    }
+  });
+
+  return Object.values(eventMap).sort((a, b) => b.count - a.count);
+}
+
+
 export function calculateRegistrationTrend(data = []) {
   const dateMap = {};
 
