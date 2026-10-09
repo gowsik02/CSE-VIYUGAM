@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Printer, FileSpreadsheet, Award, Users } from 'lucide-react';
+import { Download, Printer, FileSpreadsheet, Award, Users, ShieldCheck, Building, CreditCard, Calendar } from 'lucide-react';
 import { calculateSummaryMetrics, calculateCollegeParticipation, calculateEventParticipation, calculateEventDetailedBreakdown } from '../utils/analytics';
 import { formatCurrency, formatNumber, formatDate } from '../utils/formatters';
 
@@ -51,44 +51,44 @@ export default function Reports({ data, lastUpdated, onExportCSV }) {
     <div className="space-y-6">
       
       {/* Export Action Bar */}
-      <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 no-print">
+      <div className="card-elevated rounded-2xl p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 no-print bg-white">
         <div>
-          <h2 className="text-base font-bold text-neutral-900 font-outfit uppercase tracking-wider">
-            Analytics Reports & Export Center
+          <h2 className="text-base font-extrabold text-slate-900 font-outfit uppercase tracking-wider">
+            Symposium Reports & Export Center
           </h2>
-          <p className="text-xs text-neutral-500">
-            Generate printable symposium summaries or download CSV datasets
+          <p className="text-xs text-slate-500 font-medium">
+            Generate printable official summaries or download CSV datasets for accreditation and audits
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleExportAllEventsDetailedCSV}
-            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-lg border border-burgundy-200 bg-burgundy-50 text-xs font-semibold text-burgundy-900 hover:bg-burgundy-100 shadow-xs"
+            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-burgundy-200 bg-burgundy-50 text-xs font-bold text-burgundy-900 hover:bg-burgundy-100 shadow-2xs cursor-pointer"
           >
             <Download className="h-4 w-4 text-burgundy-800" />
-            <span>Export Event-Wise Participant CSV</span>
+            <span>Event-Wise CSV</span>
           </button>
 
           <button
-            onClick={() => onExportCSV(data, 'filtered_participants_export.csv')}
-            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-lg border border-neutral-300 bg-white text-xs font-medium text-neutral-800 hover:bg-neutral-50 shadow-xs"
+            onClick={() => onExportCSV(data, 'cse_viyugam_participants_export.csv')}
+            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 hover:bg-slate-50 shadow-2xs cursor-pointer"
           >
             <FileSpreadsheet className="h-4 w-4 text-emerald-700" />
-            <span>Export Participants CSV</span>
+            <span>Participants CSV</span>
           </button>
 
           <button
             onClick={handleExportSummaryCSV}
-            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-lg border border-neutral-300 bg-white text-xs font-medium text-neutral-800 hover:bg-neutral-50 shadow-xs"
+            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 hover:bg-slate-50 shadow-2xs cursor-pointer"
           >
-            <Download className="h-4 w-4 text-neutral-700" />
-            <span>Export Summary CSV</span>
+            <Download className="h-4 w-4 text-slate-700" />
+            <span>Summary CSV</span>
           </button>
 
           <button
             onClick={handlePrint}
-            className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-burgundy-800 text-white text-xs font-semibold hover:bg-burgundy-900 shadow-xs transition-colors"
+            className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-burgundy-800 text-white text-xs font-bold hover:bg-burgundy-900 shadow-xs transition-colors cursor-pointer"
           >
             <Printer className="h-4 w-4" />
             <span>Print Official Report</span>
@@ -96,163 +96,116 @@ export default function Reports({ data, lastUpdated, onExportCSV }) {
         </div>
       </div>
 
-      {/* Printable Report Document Card */}
-      <div className="bg-white rounded-xl border border-neutral-200 p-8 shadow-md space-y-8 print:border-none print:shadow-none print:p-0">
+      {/* Printable Official Document Card */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-8 print:border-none print:shadow-none print:p-0">
         
-        {/* Document Letterhead Header */}
-        <div className="flex justify-between items-start border-b-2 border-burgundy-800 pb-4">
-          <div>
-            <h1 className="text-2xl font-bold font-outfit text-burgundy-800 tracking-tight">
+        {/* Document Header */}
+        <div className="border-b-2 border-slate-900 pb-6 flex items-start justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-burgundy-800 block">
+              Department of Computer Science & Engineering
+            </span>
+            <h1 className="text-2xl font-extrabold font-outfit text-slate-900 tracking-tight">
               CSE VIYUGAM 2026
             </h1>
-            <p className="text-sm font-semibold text-neutral-800">
-              National Level Technical Symposium ● Executive Registration & Event Participation Report
-            </p>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              Source: Official Google Spreadsheet Sync
+            <p className="text-xs text-slate-600 font-semibold">
+              National Level Technical Symposium — Official Executive Summary
             </p>
           </div>
-          <div className="text-right text-xs text-neutral-600 font-mono">
-            <div>Report Date: {new Date().toLocaleDateString('en-IN')}</div>
-            <div>Data Updated: {formatDate(lastUpdated)}</div>
-            <div className="text-emerald-700 font-semibold mt-1">Status: Verified</div>
+
+          <div className="text-right text-xs text-slate-500 font-mono space-y-1">
+            <div className="font-bold text-slate-900">Official Report</div>
+            <div>Source: Google Sheet Sync</div>
+            <div>Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+            {lastUpdated && <div>Synced: {formatDate(lastUpdated)}</div>}
           </div>
         </div>
 
-        {/* Section 1: Executive KPI Metrics */}
-        <div>
-          <h3 className="text-xs font-bold text-neutral-900 font-outfit uppercase tracking-wider mb-3">
+        {/* 1. Key Performance Indicators Section */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-extrabold text-slate-900 font-outfit uppercase tracking-wider">
             1. Executive Key Performance Indicators
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-lg">
-              <div className="text-[10px] text-neutral-500 uppercase font-semibold">Total Participants</div>
-              <div className="text-xl font-bold text-neutral-900 font-outfit mt-1">{metrics.totalParticipants}</div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Total Registrations</span>
+              <div className="text-xl font-extrabold text-slate-900 font-outfit mt-1">{formatNumber(metrics.totalParticipants)}</div>
             </div>
-            <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-lg">
-              <div className="text-[10px] text-neutral-500 uppercase font-semibold">Total Colleges</div>
-              <div className="text-xl font-bold text-neutral-900 font-outfit mt-1">{metrics.totalColleges}</div>
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Participating Colleges</span>
+              <div className="text-xl font-extrabold text-slate-900 font-outfit mt-1">{formatNumber(metrics.totalColleges)}</div>
             </div>
-            <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-lg">
-              <div className="text-[10px] text-neutral-500 uppercase font-semibold">Verification Status</div>
-              <div className="text-xs font-bold text-neutral-900 mt-1">
-                Verified: {metrics.verifiedCount} ({metrics.verifiedRate}%) <br />
-                New: {metrics.newCount}
-              </div>
+            <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50">
+              <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">Verified Collections</span>
+              <div className="text-xl font-extrabold text-emerald-950 font-outfit mt-1">{formatCurrency(metrics.verifiedAmount)}</div>
             </div>
-            <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-lg">
-              <div className="text-[10px] text-neutral-500 uppercase font-semibold">Verified Collections</div>
-              <div className="text-xl font-bold text-emerald-800 font-outfit mt-1">{formatCurrency(metrics.verifiedAmount)}</div>
+            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50">
+              <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider block">Verification Rate</span>
+              <div className="text-xl font-extrabold text-amber-950 font-outfit mt-1">{metrics.verifiedRate}% ({metrics.verifiedCount} / {metrics.totalParticipants})</div>
             </div>
           </div>
         </div>
 
-        {/* Section 2: Top Participating Colleges */}
-        <div>
-          <h3 className="text-xs font-bold text-neutral-900 font-outfit uppercase tracking-wider mb-3">
-            2. Top 10 Participating Colleges Summary
+        {/* 2. Institutional Participation Summary */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-extrabold text-slate-900 font-outfit uppercase tracking-wider">
+            2. Institutional Participation Summary (Top 10)
           </h3>
-          <table className="w-full text-left text-xs border border-neutral-200">
-            <thead className="bg-neutral-100 font-semibold border-b border-neutral-200">
+          <table className="w-full text-left text-xs border border-slate-200">
+            <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
               <tr>
-                <th className="p-2 w-12 text-center">Rank</th>
-                <th className="p-2">College Name</th>
-                <th className="p-2 text-center">Participants</th>
-                <th className="p-2 text-center">% Share</th>
-                <th className="p-2 text-right">Amount</th>
+                <th className="p-2.5 border-b border-slate-200">#</th>
+                <th className="p-2.5 border-b border-slate-200">College / Institution</th>
+                <th className="p-2.5 border-b border-slate-200 text-center">Registrations</th>
+                <th className="p-2.5 border-b border-slate-200 text-center">Verified</th>
+                <th className="p-2.5 border-b border-slate-200 text-right">Confirmed Revenue</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-200">
-              {collegeStats.topColleges.map((c) => (
-                <tr key={c.rank}>
-                  <td className="p-2 text-center font-mono font-bold">#{c.rank}</td>
-                  <td className="p-2 font-semibold text-neutral-900">{c.college}</td>
-                  <td className="p-2 text-center font-bold text-burgundy-800">{c.participants}</td>
-                  <td className="p-2 text-center font-mono">{c.percentage}%</td>
-                  <td className="p-2 text-right font-bold text-neutral-900">{formatCurrency(c.amount)}</td>
+            <tbody className="divide-y divide-slate-200">
+              {collegeStats.topColleges.map((c, idx) => (
+                <tr key={idx} className="hover:bg-slate-50">
+                  <td className="p-2.5 font-mono text-slate-500 font-bold">#{idx + 1}</td>
+                  <td className="p-2.5 font-semibold text-slate-900">{c.college}</td>
+                  <td className="p-2.5 text-center font-bold text-slate-800">{c.participants}</td>
+                  <td className="p-2.5 text-center text-emerald-700 font-bold">{c.verifiedCount}</td>
+                  <td className="p-2.5 text-right font-mono font-bold text-slate-900">{formatCurrency(c.amount)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {/* Section 3: Event Popularity Summary */}
-        {eventStats.length > 0 && (
-          <div>
-            <h3 className="text-xs font-bold text-neutral-900 font-outfit uppercase tracking-wider mb-3">
-              3. Symposium Event Participation Summary
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-              {eventStats.map((evt, idx) => (
-                <div key={idx} className="p-2.5 bg-neutral-50 border border-neutral-200 rounded flex justify-between items-center">
-                  <span className="font-semibold text-neutral-800">{evt.name}</span>
-                  <span className="font-bold text-burgundy-800">{evt.count} Registrations</span>
-                </div>
-              ))}
-            </div>
+        {/* 3. Event Roster Breakdown */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-extrabold text-slate-900 font-outfit uppercase tracking-wider">
+            3. Symposium Competitions Summary
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {eventStats.map((evt, idx) => (
+              <div key={idx} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between">
+                <span className="font-bold text-xs text-slate-800">{evt.eventName}</span>
+                <span className="font-mono text-xs font-extrabold text-burgundy-800 bg-burgundy-50 px-2 py-0.5 rounded border border-burgundy-100">
+                  {evt.participants}
+                </span>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
 
-        {/* Section 4: Event-Wise Participant List Report */}
-        {eventDetailedBreakdown.length > 0 && (
-          <div className="space-y-6 pt-4 border-t border-neutral-200">
-            <div>
-              <h3 className="text-sm font-bold text-neutral-900 font-outfit uppercase tracking-wider">
-                4. Event-Wise Detailed Participant Breakdown
-              </h3>
-              <p className="text-xs text-neutral-500 mt-0.5">
-                Participant names and college details listed separately for each registered event
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              {eventDetailedBreakdown.map((evt) => (
-                <div key={evt.eventName} className="border border-neutral-200 rounded-lg overflow-hidden page-break-inside-avoid">
-                  
-                  {/* Event Title Banner */}
-                  <div className="bg-neutral-100 p-3 border-b border-neutral-200 flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Award className="h-4 w-4 text-burgundy-800" />
-                      <span className="font-bold text-neutral-900 text-xs font-outfit uppercase">{evt.eventName}</span>
-                    </div>
-                    <div className="text-xs font-bold text-neutral-700 font-mono bg-white px-2 py-0.5 rounded border border-neutral-200">
-                      Total Participants: <strong className="text-burgundy-800">{evt.count}</strong>
-                    </div>
-                  </div>
-
-                  {/* Participant Table */}
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 font-semibold text-[10px] uppercase">
-                      <tr>
-                        <th className="p-2 w-10 text-center">S.No</th>
-                        <th className="p-2">Participant Name</th>
-                        <th className="p-2">College Name</th>
-                        <th className="p-2">Department / Year</th>
-                        <th className="p-2">Registered On</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-200 bg-white">
-                      {evt.participants.map((p, idx) => (
-                        <tr key={p.id || idx}>
-                          <td className="p-2 text-center font-mono font-bold text-neutral-400">{idx + 1}</td>
-                          <td className="p-2 font-bold text-neutral-900">{p.name}</td>
-                          <td className="p-2 font-semibold text-neutral-800">{p.college}</td>
-                          <td className="p-2 text-neutral-600">{p.department} {p.year !== 'N/A' ? `(${p.year})` : ''}</td>
-                          <td className="p-2 font-mono text-[11px] text-neutral-700">{formatDate(p.timestamp)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                </div>
-              ))}
-            </div>
+        {/* Signature & Verification Seal Section */}
+        <div className="pt-12 border-t border-slate-200 grid grid-cols-3 text-center text-xs text-slate-600 font-semibold gap-4">
+          <div className="space-y-12">
+            <div className="h-0.5 bg-slate-300 w-3/4 mx-auto" />
+            <div>Staff Coordinator</div>
           </div>
-        )}
-
-        {/* Report Footer */}
-        <div className="pt-6 border-t border-neutral-200 text-center text-xs text-neutral-400 font-mono">
-          CSE VIYUGAM 2026 ● National Level Technical Symposium Organizers Dashboard Report
+          <div className="space-y-12">
+            <div className="h-0.5 bg-slate-300 w-3/4 mx-auto" />
+            <div>Student Coordinator</div>
+          </div>
+          <div className="space-y-12">
+            <div className="h-0.5 bg-slate-300 w-3/4 mx-auto" />
+            <div>Head of Department (CSE)</div>
+          </div>
         </div>
 
       </div>

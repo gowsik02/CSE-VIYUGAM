@@ -1,8 +1,32 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Download, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, Clock, RotateCcw, Filter, UserCheck, Calendar } from 'lucide-react';
+import {
+  Download,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle,
+  Clock,
+  RotateCcw,
+  Filter,
+  UserCheck,
+  Calendar,
+  Building,
+  Mail,
+  Phone,
+  Image as ImageIcon,
+  ExternalLink,
+  Users,
+  Award,
+} from 'lucide-react';
 import { formatCurrency, formatDate } from '../utils/formatters';
 
-export default function Participants({ data, initialTab = 'new', onSelectParticipant, onToggleVerify, onExportCSV }) {
+export default function Participants({
+  data,
+  initialTab = 'new',
+  onSelectParticipant,
+  onToggleVerify,
+  onExportCSV,
+}) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [sortField, setSortField] = useState('rowIndex');
   const [sortAsc, setSortAsc] = useState(true);
@@ -57,39 +81,39 @@ export default function Participants({ data, initialTab = 'new', onSelectPartici
     <div className="card-elevated rounded-2xl space-y-0 overflow-hidden">
       
       {/* Header Bar */}
-      <div className="p-5 border-b border-neutral-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white">
+      <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white">
         <div>
-          <h2 className="text-base font-extrabold text-neutral-900 font-outfit uppercase tracking-wider flex items-center gap-2">
-            <UserCheck className="h-5 w-5 text-burgundy-800" /> Participant Registration Directory
+          <h2 className="text-base font-extrabold text-slate-900 font-outfit uppercase tracking-wider flex items-center gap-2">
+            <UserCheck className="h-5 w-5 text-burgundy-800" /> Participant Directory & Verification
           </h2>
-          <p className="text-xs text-neutral-500 mt-0.5 font-medium">
-            Inspect complete registration records, filter by status, or verify payments
+          <p className="text-xs text-slate-500 mt-0.5 font-medium">
+            Manage registrations, verify incoming payment proofs, and export attendee rosters
           </p>
         </div>
 
         <button
           onClick={() => onExportCSV(tabFilteredData, `cse_viyugam_${activeTab}_registrations.csv`)}
-          className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl border border-neutral-200 bg-white text-xs font-bold text-neutral-800 hover:bg-neutral-50 hover:border-neutral-300 transition-all shadow-2xs active:scale-95"
+          className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
         >
           <Download className="h-4 w-4 text-burgundy-800" />
-          <span>Export Filtered CSV</span>
+          <span>Export Filtered CSV ({tabFilteredData.length})</span>
         </button>
       </div>
 
       {/* Modern Pill Section Tabs */}
-      <div className="px-5 pt-3 bg-neutral-50/80 border-b border-neutral-200/80 flex items-center space-x-2 overflow-x-auto">
+      <div className="px-4 sm:px-5 pt-3 bg-slate-50/80 border-b border-slate-200/90 flex items-center space-x-2 overflow-x-auto">
         
         {/* New Registrations Tab */}
         <button
           onClick={() => { setActiveTab('new'); setCurrentPage(1); }}
-          className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition-all border-b-2 ${
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition-all border-b-2 cursor-pointer ${
             activeTab === 'new'
               ? 'bg-white text-amber-950 border-amber-600 shadow-2xs'
-              : 'text-neutral-500 hover:text-neutral-900 border-transparent'
+              : 'text-slate-500 hover:text-slate-900 border-transparent'
           }`}
         >
           <Clock className="h-4 w-4 text-amber-600" />
-          <span>New Registrations</span>
+          <span>New Submissions</span>
           <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-900 border border-amber-200">
             {newCount}
           </span>
@@ -98,10 +122,10 @@ export default function Participants({ data, initialTab = 'new', onSelectPartici
         {/* Verified Registrations Tab */}
         <button
           onClick={() => { setActiveTab('verified'); setCurrentPage(1); }}
-          className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition-all border-b-2 ${
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition-all border-b-2 cursor-pointer ${
             activeTab === 'verified'
               ? 'bg-white text-emerald-950 border-emerald-600 shadow-2xs'
-              : 'text-neutral-500 hover:text-neutral-900 border-transparent'
+              : 'text-slate-500 hover:text-slate-900 border-transparent'
           }`}
         >
           <CheckCircle className="h-4 w-4 text-emerald-600" />
@@ -114,196 +138,252 @@ export default function Participants({ data, initialTab = 'new', onSelectPartici
         {/* All Registrations Tab */}
         <button
           onClick={() => { setActiveTab('all'); setCurrentPage(1); }}
-          className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition-all border-b-2 ${
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition-all border-b-2 cursor-pointer ${
             activeTab === 'all'
               ? 'bg-white text-burgundy-950 border-burgundy-800 shadow-2xs'
-              : 'text-neutral-500 hover:text-neutral-900 border-transparent'
+              : 'text-slate-500 hover:text-slate-900 border-transparent'
           }`}
         >
-          <Filter className="h-4 w-4 text-neutral-400" />
+          <Users className="h-4 w-4 text-burgundy-800" />
           <span>All Registrations</span>
-          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-neutral-200 text-neutral-800">
+          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-800">
             {data.length}
           </span>
         </button>
+
       </div>
 
-      {/* Table View */}
+      {/* Directory Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-neutral-50/90 border-b border-neutral-200/80 text-neutral-500 font-extrabold uppercase tracking-wider text-[10px]">
+          <thead>
             <tr>
-              <th className="py-3.5 px-4 w-12 text-center">#</th>
-              <th className="py-3.5 px-4 cursor-pointer hover:text-neutral-900" onClick={() => handleSort('name')}>
-                <div className="flex items-center space-x-1">
-                  <span>Participant Name</span>
-                  <ArrowUpDown className="h-3 w-3" />
+              <th
+                onClick={() => handleSort('rowIndex')}
+                className="table-header-cell cursor-pointer hover:bg-slate-100"
+              >
+                <div className="flex items-center space-x-1.5">
+                  <span>#</span>
+                  <ArrowUpDown className="h-3 w-3 text-slate-400" />
                 </div>
               </th>
-              <th className="py-3.5 px-4 cursor-pointer hover:text-neutral-900" onClick={() => handleSort('college')}>
-                <div className="flex items-center space-x-1">
-                  <span>Institution</span>
-                  <ArrowUpDown className="h-3 w-3" />
+
+              <th
+                onClick={() => handleSort('name')}
+                className="table-header-cell cursor-pointer hover:bg-slate-100"
+              >
+                <div className="flex items-center space-x-1.5">
+                  <span>Participant</span>
+                  <ArrowUpDown className="h-3 w-3 text-slate-400" />
                 </div>
               </th>
-              <th className="py-3.5 px-4">Contact</th>
-              <th className="py-3.5 px-4">Date & Time Registered</th>
-              <th className="py-3.5 px-4">Dept / Year</th>
-              <th className="py-3.5 px-4">Events</th>
-              <th className="py-3.5 px-4 cursor-pointer hover:text-neutral-900" onClick={() => handleSort('amount')}>
-                <div className="flex items-center space-x-1">
+
+              <th
+                onClick={() => handleSort('college')}
+                className="table-header-cell cursor-pointer hover:bg-slate-100"
+              >
+                <div className="flex items-center space-x-1.5">
+                  <span>College / Institution</span>
+                  <ArrowUpDown className="h-3 w-3 text-slate-400" />
+                </div>
+              </th>
+
+              <th className="table-header-cell">Contact Info</th>
+              <th className="table-header-cell">Events Registered</th>
+              <th className="table-header-cell">Txn & Proof</th>
+
+              <th
+                onClick={() => handleSort('amount')}
+                className="table-header-cell cursor-pointer hover:bg-slate-100"
+              >
+                <div className="flex items-center space-x-1.5">
                   <span>Fee</span>
-                  <ArrowUpDown className="h-3 w-3" />
+                  <ArrowUpDown className="h-3 w-3 text-slate-400" />
                 </div>
               </th>
-              <th className="py-3.5 px-4 cursor-pointer hover:text-neutral-900" onClick={() => handleSort('paymentStatus')}>
-                <div className="flex items-center space-x-1">
-                  <span>Status</span>
-                  <ArrowUpDown className="h-3 w-3" />
-                </div>
-              </th>
-              <th className="py-3.5 px-4 text-center">Verification Action</th>
+
+              <th className="table-header-cell">Status</th>
+              <th className="table-header-cell text-center">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-100 bg-white">
+
+          <tbody className="divide-y divide-slate-100 bg-white">
             {paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={10} className="py-12 text-center text-neutral-400 font-medium">
-                  No records in "{activeTab}" section matching filters.
+                <td colSpan={9} className="py-12 text-center text-slate-400 font-medium">
+                  No registrations found in this view.
                 </td>
               </tr>
             ) : (
-              paginatedData.map((item) => {
-                const initials = item.name ? item.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'P';
-                return (
-                  <tr
-                    key={item.id}
-                    onClick={() => onSelectParticipant(item)}
-                    className="hover:bg-burgundy-50/30 cursor-pointer transition-colors group"
-                  >
-                    <td className="py-3.5 px-4 text-center font-mono text-neutral-400 text-[11px] font-medium">
-                      {item.rowIndex}
-                    </td>
+              paginatedData.map((item) => (
+                <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                  
+                  {/* Row Index */}
+                  <td className="table-body-cell font-mono text-slate-400 text-[11px] font-bold">
+                    #{item.rowIndex}
+                  </td>
 
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-burgundy-100 to-burgundy-200 border border-burgundy-300/60 flex items-center justify-center text-burgundy-900 font-extrabold text-xs shrink-0 shadow-2xs">
-                          {initials}
-                        </div>
-                        <div>
-                          <div className="font-extrabold text-neutral-900 group-hover:text-burgundy-900 transition-colors">{item.name}</div>
-                          <div className="text-[10px] text-neutral-400 font-mono">{item.id}</div>
-                        </div>
+                  {/* Participant Name & ID */}
+                  <td className="table-body-cell">
+                    <div
+                      onClick={() => onSelectParticipant && onSelectParticipant(item)}
+                      className="cursor-pointer group flex items-center space-x-2.5"
+                    >
+                      <div className="h-8 w-8 rounded-lg bg-burgundy-50 border border-burgundy-100 text-burgundy-800 font-bold flex items-center justify-center shrink-0 group-hover:bg-burgundy-800 group-hover:text-white transition-colors">
+                        {item.name ? item.name[0].toUpperCase() : 'P'}
                       </div>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-neutral-800 font-bold max-w-xs truncate">
-                      {item.college}
-                    </td>
-
-                    <td className="py-3.5 px-4 text-neutral-600 text-[11px]">
-                      <div className="font-medium text-neutral-800">{item.phone || item.email || 'N/A'}</div>
-                      {item.transactionId && (
-                        <div className="text-[10px] text-neutral-400 font-mono">Txn: {item.transactionId}</div>
-                      )}
-                    </td>
-
-                    <td className="py-3.5 px-4 text-neutral-700 text-[11px]">
-                      <div className="font-bold text-neutral-800 flex items-center gap-1 font-mono text-[10px]">
-                        <Clock className="h-3 w-3 text-burgundy-800 shrink-0" />
-                        {formatDate(item.timestamp)}
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-neutral-600 text-[11px] font-medium">
-                      {item.department} {item.year !== 'N/A' ? `(${item.year})` : ''}
-                    </td>
-
-                    <td className="py-3.5 px-4 max-w-xs">
-                      {item.events && item.events.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {item.events.slice(0, 2).map((evt, idx) => (
-                            <span key={idx} className="px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-700 text-[10px] font-bold border border-neutral-200/80">
-                              {evt}
-                            </span>
-                          ))}
-                          {item.events.length > 2 && (
-                            <span className="text-[10px] text-neutral-400 font-extrabold">
-                              +{item.events.length - 2} more
-                            </span>
+                      <div>
+                        <div className="font-bold text-slate-900 group-hover:text-burgundy-800 transition-colors">
+                          {item.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
+                          <span>{item.id}</span>
+                          {item.timestamp && (
+                            <>
+                              <span>•</span>
+                              <span>{formatDate(item.timestamp)}</span>
+                            </>
                           )}
                         </div>
-                      ) : (
-                        <span className="text-neutral-400 italic text-[11px]">—</span>
-                      )}
-                    </td>
+                      </div>
+                    </div>
+                  </td>
 
-                    <td className="py-3.5 px-4 font-extrabold text-neutral-900 font-mono">
-                      {formatCurrency(item.amount)}
-                    </td>
+                  {/* College Name & Department */}
+                  <td className="table-body-cell">
+                    <div className="font-semibold text-slate-800 max-w-[220px] truncate" title={item.college}>
+                      {item.college}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-medium">
+                      {item.department} ({item.year})
+                    </div>
+                  </td>
 
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-2xs ${
-                        item.isVerified ? 'badge-glow-emerald' : 'badge-glow-amber'
-                      }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${item.isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                        <span>{item.isVerified ? 'Verified' : 'New Submission'}</span>
-                      </span>
-                    </td>
+                  {/* Contact Info */}
+                  <td className="table-body-cell text-[11px]">
+                    <div className="flex items-center space-x-1 text-slate-700">
+                      <Phone className="h-3 w-3 text-slate-400" />
+                      <span>{item.phone || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center space-x-1 text-slate-500 truncate max-w-[170px]" title={item.email}>
+                      <Mail className="h-3 w-3 text-slate-400" />
+                      <span className="truncate">{item.email || 'N/A'}</span>
+                    </div>
+                  </td>
 
-                    <td className="py-3.5 px-4 text-center">
-                      {!item.isVerified ? (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleVerify(item);
-                          }}
-                          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-extrabold text-xs shadow-md shadow-emerald-900/20 active:scale-95 transition-all"
+                  {/* Events Registered */}
+                  <td className="table-body-cell">
+                    {item.events && item.events.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {item.events.map((evt, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-0.5 rounded-md bg-burgundy-50 border border-burgundy-100 text-burgundy-900 text-[10px] font-bold truncate max-w-[190px]"
+                            title={evt}
+                          >
+                            {evt}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-slate-400 text-[11px] italic">No events chosen</span>
+                    )}
+                  </td>
+
+                  {/* Transaction ID & Screenshot */}
+                  <td className="table-body-cell">
+                    {item.transactionId && (
+                      <div className="font-mono text-slate-800 font-bold bg-slate-100 px-2 py-0.5 rounded text-[11px] inline-block">
+                        {item.transactionId}
+                      </div>
+                    )}
+                    {item.paymentScreenshot && (
+                      <div className="mt-1">
+                        <a
+                          href={item.paymentScreenshot}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-1 text-[10px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline"
                         >
-                          <CheckCircle className="h-3.5 w-3.5" />
-                          <span>Verify</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleVerify(item);
-                          }}
-                          className="inline-flex items-center space-x-1 px-3 py-1 rounded-xl border border-neutral-300/80 text-neutral-600 hover:text-amber-800 hover:bg-amber-50 text-[11px] font-bold transition-all active:scale-95"
-                          title="Move back to New Registrations"
-                        >
-                          <RotateCcw className="h-3 w-3" />
-                          <span>Unverify</span>
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
+                          <ImageIcon className="h-3 w-3" />
+                          <span>View Proof</span>
+                          <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
+                        </a>
+                      </div>
+                    )}
+                  </td>
+
+                  {/* Fee Amount */}
+                  <td className="table-body-cell font-mono font-bold text-slate-900">
+                    {formatCurrency(item.amount)}
+                  </td>
+
+                  {/* Status Pill */}
+                  <td className="table-body-cell">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      item.isVerified ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'
+                    }`}>
+                      {item.isVerified ? 'Verified' : 'Pending'}
+                    </span>
+                  </td>
+
+                  {/* Actions */}
+                  <td className="table-body-cell text-center">
+                    <div className="flex items-center justify-center space-x-1.5">
+                      <button
+                        type="button"
+                        onClick={() => onToggleVerify(item)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                          item.isVerified
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                        }`}
+                      >
+                        {item.isVerified ? 'Unverify' : 'Verify'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onSelectParticipant && onSelectParticipant(item)}
+                        className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-semibold cursor-pointer"
+                      >
+                        Details
+                      </button>
+                    </div>
+                  </td>
+
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Pagination Controls */}
-      <div className="p-4 border-t border-neutral-200/80 flex items-center justify-between text-xs text-neutral-600 bg-white">
-        <div className="font-medium">
-          Page <strong className="text-neutral-900 font-extrabold">{currentPage}</strong> of {totalPages}
+      {/* Pagination Footer */}
+      <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+        <div>
+          Showing rows <strong className="text-slate-900 font-bold">{(currentPage - 1) * pageSize + 1}</strong> to{' '}
+          <strong className="text-slate-900 font-bold">{Math.min(currentPage * pageSize, sortedData.length)}</strong> of{' '}
+          <strong className="text-slate-900 font-bold">{sortedData.length}</strong>
         </div>
+
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="p-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 active:scale-95 disabled:opacity-40 shadow-2xs"
+            className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
+          
+          <span className="font-semibold text-slate-800">
+            Page {currentPage} of {totalPages}
+          </span>
+
           <button
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="p-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 active:scale-95 disabled:opacity-40 shadow-2xs"
+            className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
