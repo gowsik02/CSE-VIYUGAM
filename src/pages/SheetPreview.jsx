@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Table, Search, ArrowUpDown, Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Table, Search, ArrowUpDown, Download, Filter, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+
+const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1T5w7Jk5-M_1SFtyXAF4LwtQoaWjO3Y6XFVeWvOfGAyU/edit?resourcekey=&gid=1175403078#gid=1175403078';
 
 export default function SheetPreview({ rawHeaders = [], rawRows = [], onExportCSV }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -80,6 +82,16 @@ export default function SheetPreview({ rawHeaders = [], rawRows = [], onExportCS
               className="pl-8 pr-3 py-1 text-xs border border-neutral-300 rounded bg-white text-neutral-900 focus:ring-1 focus:ring-emerald-600 focus:outline-none"
             />
           </div>
+
+          <a
+            href={GOOGLE_SHEET_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded border border-neutral-300 bg-white text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-emerald-700 transition-colors"
+          >
+            <ExternalLink className="h-3 w-3 text-emerald-700" />
+            <span>Open Sheet</span>
+          </a>
 
           <button
             onClick={() => onExportCSV(rawRows, 'raw_google_sheet_export.csv')}

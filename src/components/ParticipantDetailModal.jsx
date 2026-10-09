@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Building, Mail, Phone, Award, FileText, CheckCircle, RotateCcw, Clock, Calendar } from 'lucide-react';
+import { X, User, Building, Mail, Phone, Award, FileText, CheckCircle, RotateCcw, Clock, Calendar, ExternalLink, Users, Image as ImageIcon } from 'lucide-react';
 import { formatCurrency, formatDate } from '../utils/formatters';
 
 export default function ParticipantDetailModal({ participant, onClose, onToggleVerify }) {
@@ -111,9 +111,9 @@ export default function ParticipantDetailModal({ participant, onClose, onToggleV
             </div>
           </div>
 
-          {/* Contact Details */}
+          {/* Contact & Payment Details */}
           <div className="space-y-2.5 text-xs pt-2 border-t border-neutral-100">
-            <h4 className="font-extrabold text-neutral-800 text-[11px] uppercase tracking-wider">Contact Information</h4>
+            <h4 className="font-extrabold text-neutral-800 text-[11px] uppercase tracking-wider">Contact & Verification Proof</h4>
             <div className="flex items-center space-x-2.5 text-neutral-700 font-medium">
               <Mail className="h-4 w-4 text-neutral-400" />
               <span>{participant.email || 'No email provided'}</span>
@@ -128,7 +128,53 @@ export default function ParticipantDetailModal({ participant, onClose, onToggleV
                 <span>Txn ID: <strong className="font-mono text-neutral-900">{participant.transactionId}</strong></span>
               </div>
             )}
+            {participant.paymentScreenshot && (
+              <div className="pt-1">
+                <a
+                  href={participant.paymentScreenshot}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100 text-xs font-bold transition-colors"
+                >
+                  <ImageIcon className="h-3.5 w-3.5 text-emerald-700" />
+                  <span>View Uploaded Payment Screenshot</span>
+                  <ExternalLink className="h-3 w-3 text-emerald-600 ml-1" />
+                </a>
+              </div>
+            )}
           </div>
+
+          {/* Team Details (if applicable) */}
+          {(participant.teamName || (participant.teamMembers && participant.teamMembers.length > 0)) && (
+            <div className="space-y-2 text-xs pt-2 border-t border-neutral-100">
+              <h4 className="font-extrabold text-neutral-800 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-burgundy-800" /> Team Information
+              </h4>
+              <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200 space-y-1.5">
+                {participant.teamName && (
+                  <div>
+                    <span className="text-neutral-500 font-medium">Team Name: </span>
+                    <strong className="text-neutral-900">{participant.teamName}</strong>
+                    {participant.teamSize && (
+                      <span className="ml-2 text-[11px] text-neutral-500 font-mono">({participant.teamSize} members)</span>
+                    )}
+                  </div>
+                )}
+                {participant.teamMembers && participant.teamMembers.length > 0 && (
+                  <div>
+                    <span className="text-neutral-500 font-medium block mb-1">Team Members:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {participant.teamMembers.map((tm, idx) => (
+                        <span key={idx} className="px-2 py-0.5 rounded bg-white border border-neutral-300 text-neutral-800 text-[11px] font-semibold">
+                          {tm}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Events Registered */}
           <div className="space-y-2.5 text-xs pt-2 border-t border-neutral-100">

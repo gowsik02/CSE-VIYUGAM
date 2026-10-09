@@ -2,13 +2,15 @@ import { google } from 'googleapis';
 import axios from 'axios';
 import Papa from 'papaparse';
 
-const DEFAULT_SPREADSHEET_ID = '1doXrCIk2H2UscjpXf6xEa3PDU6uco9KjzMWiF_vG-xc';
+const DEFAULT_SPREADSHEET_ID = '1T5w7Jk5-M_1SFtyXAF4LwtQoaWjO3Y6XFVeWvOfGAyU';
+const DEFAULT_SHEET_GID = '1175403078';
 
 /**
  * Fetch data from Google Sheet using official API v4 or Public CSV Fallback
  */
 export async function fetchSpreadsheetData() {
   const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID || DEFAULT_SPREADSHEET_ID;
+  const sheetGid = process.env.GOOGLE_SHEET_GID || DEFAULT_SHEET_GID;
   const apiKey = process.env.GOOGLE_API_KEY;
   const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = process.env.GOOGLE_PRIVATE_KEY
@@ -54,7 +56,10 @@ export async function fetchSpreadsheetData() {
 
   // 2. Fallback to public sheet CSV export endpoint
   if (rawRows.length === 0) {
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`;
+    const csvUrl = sheetGid
+      ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheetGid}`
+      : `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`;
+
     try {
       const response = await axios.get(csvUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
@@ -62,6 +67,10 @@ export async function fetchSpreadsheetData() {
       });
 
       const csvData = response.data;
+      if (typeof csvData === 'string' && csvData.includes('<!DOCTYPE html>')) {
+        throw new Error('Google Sheet is private or requires permission. Please share the sheet as "Anyone with the link can view".');
+      }
+
       const parseResult = Papa.parse(csvData, {
         header: false,
         skipEmptyLines: true,
@@ -74,7 +83,28 @@ export async function fetchSpreadsheetData() {
         source = 'public_csv';
       }
     } catch (csvError) {
-      throw new Error(`Failed to fetch Google Sheet data: ${csvError.message}`);
+      // Secondary fallback to gviz endpoint
+      const gvizUrl = sheetGid
+        ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${sheetGid}`
+        : `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv`;
+      
+      try {
+        const gvizRes = await axios.get(gvizUrl, { timeout: 10000 });
+        const gvizData = gvizRes.data;
+        if (typeof gvizData === 'string' && gvizData.includes('<!DOCTYPE html>')) {
+          throw new Error('Google Sheet is restricted. Please enable "Anyone with the link can view" in Google Sheets Share settings.');
+        }
+
+        const parseResult = Papa.parse(gvizData, { header: false, skipEmptyLines: true });
+        const allRows = parseResult.data || [];
+        if (allRows.length > 0) {
+          headers = allRows[0].map(h => String(h || '').trim());
+          rawRows = allRows.slice(1);
+          source = 'public_gviz_csv';
+        }
+      } catch (gvizError) {
+        throw new Error(`Failed to fetch Google Sheet data: ${csvError.message || gvizError.message}`);
+      }
     }
   }
 

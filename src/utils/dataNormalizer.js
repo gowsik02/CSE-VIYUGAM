@@ -3,9 +3,9 @@
  */
 
 const COLUMN_ALIASES = {
-  name: ['participant name', 'full name', 'student name', 'name'],
-  college: ['collage name', 'college name', 'institution', 'collage', 'college', 'institute', 'organization'],
-  email: ['email address', 'email', 'e-mail'],
+  name: ['name of the participant', 'participant name', 'full name', 'student name', 'name'],
+  college: ['name of the college', 'name of the institute', 'collage name', 'college name', 'institution', 'collage', 'college', 'institute', 'organization'],
+  email: ['email id', 'email address', 'email', 'e-mail'],
   phone: ['mobile number', 'phone number', 'contact number', 'mobile', 'phone', 'contact', 'whatsapp'],
   department: ['department', 'dept', 'branch', 'stream'],
   year: ['year of study', 'year', 'study year', 'grade'],
@@ -13,9 +13,12 @@ const COLUMN_ALIASES = {
   paymentStatus: ['payment status', 'status', 'payment', 'paid status', 'transaction status'],
   transactionId: ['transaction id', 'txn id', 'upi transaction id', 'utr', 'payment id'],
   timestamp: ['timestamp', 'registration date', 'date', 'time'],
-  techEvents: ['select the technical events', 'technical events', 'technical event'],
-  nonTechEvents: ['select the non-technical events', 'non-technical events', 'non-technical event'],
+  techEvents: ['select technical events', 'select the technical events', 'technical events', 'technical event'],
+  nonTechEvents: ['select  non-technical events', 'select non-technical events', 'select the non-technical events', 'non-technical events', 'non-technical event'],
   generalEvent: ['select event', 'event name', 'event', 'registered event', 'events'],
+  teamName: ['team name', 'team'],
+  teamSize: ['team size', 'size of team'],
+  paymentScreenshot: ['upload payment screenshot', 'payment screenshot', 'payment proof', 'screenshot', 'payment receipt'],
 };
 
 /**
@@ -42,7 +45,7 @@ export function normalizeCollegeName(rawCollege, canonicalMap = new Map()) {
       return word.toLowerCase();
     }
     // Keep acronyms like PPG, CSE, IT, KIT, PSG uppercase
-    if (['ppg', 'cse', 'it', 'kit', 'psg', 'skcet', 'srec', 'cit', 'gct'].includes(word.toLowerCase())) {
+    if (['ppg', 'cse', 'it', 'kit', 'psg', 'skcet', 'srec', 'cit', 'gct', 'dsu'].includes(word.toLowerCase())) {
       return word.toUpperCase();
     }
     return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
@@ -101,6 +104,12 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
   const mapping = detectColumnMapping(headers);
   const canonicalCollegeMap = new Map();
 
+  // Find all team member columns
+  const teamMemberHeaders = headers.filter(h => {
+    const l = String(h || '').toLowerCase();
+    return l.includes('team member');
+  });
+
   let verifiedKeys = new Set();
   let unverifiedKeys = new Set();
 
@@ -122,6 +131,18 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
     const rawStatus = row[mapping.paymentStatus] || '';
     const rawAmount = row[mapping.amount];
     const rawTimestamp = row[mapping.timestamp] || '';
+    const rawTeamName = row[mapping.teamName] || '';
+    const rawTeamSize = row[mapping.teamSize] || '';
+    const rawScreenshot = row[mapping.paymentScreenshot] || '';
+
+    // Collect team members
+    const teamMembers = [];
+    teamMemberHeaders.forEach(tmHeader => {
+      const member = String(row[tmHeader] || '').trim();
+      if (member && member.length > 1 && !['none', 'nil', 'n/a'].includes(member.toLowerCase())) {
+        teamMembers.push(member);
+      }
+    });
 
     const rowIndex = row._rowIndex || index + 1;
     const id = `REG-${String(rowIndex).padStart(4, '0')}`;
@@ -135,6 +156,9 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
     const department = String(rawDept).trim() || 'CSE / IT';
     const year = String(rawYear).trim() || 'N/A';
     const transactionId = String(rawTxnId).trim();
+    const teamName = String(rawTeamName).trim();
+    const teamSize = String(rawTeamSize).trim();
+    const paymentScreenshot = String(rawScreenshot).trim();
 
     const candidateKeys = [
       id,
@@ -154,7 +178,7 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
     } else if (isExplicitlyUnverified) {
       isVerified = false;
     } else {
-      isVerified = transactionId.length > 4 && rawStatus.toLowerCase().includes('paid');
+      isVerified = transactionId.length > 4 && (rawStatus.toLowerCase().includes('paid') || Boolean(paymentScreenshot));
     }
 
     const paymentStatus = isVerified ? 'Verified' : 'New / Pending';
@@ -170,10 +194,14 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
       phone,
       department,
       year,
+      teamName,
+      teamSize,
+      teamMembers,
       amount,
       isVerified,
       paymentStatus,
       transactionId,
+      paymentScreenshot,
       events,
       timestamp: rawTimestamp,
       rawRow: row,
