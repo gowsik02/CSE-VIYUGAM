@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Users,
   Building2,
@@ -15,6 +15,14 @@ import {
   ExternalLink,
   ChevronRight,
   Database,
+  Users2,
+  Crown,
+  Search,
+  CheckCircle2,
+  Check,
+  Building,
+  Filter,
+  Shield,
 } from 'lucide-react';
 import {
   PieChart,
@@ -39,15 +47,57 @@ import {
   calculateEventParticipation,
   calculateRegistrationTrend,
   calculateDataQuality,
+  calculateTeamsSummary,
 } from '../utils/analytics';
 import { formatCurrency, formatNumber, formatDate } from '../utils/formatters';
 
-export default function Dashboard({ data, onSelectParticipant, onNavigate, onToggleVerify }) {
+export default function Dashboard({
+  data,
+  onSelectParticipant,
+  onNavigate,
+  onToggleVerify,
+  onViewTeam,
+}) {
+  const [teamSearch, setTeamSearch] = useState('');
+  const [teamStatusFilter, setTeamStatusFilter] = useState('all'); // 'all', 'verified', 'pending'
+
   const metrics = calculateSummaryMetrics(data);
   const collegeStats = calculateCollegeParticipation(data, 7);
   const paymentStats = calculatePaymentSummary(data);
   const eventStats = calculateEventParticipation(data);
   const qualityMetrics = calculateDataQuality(data);
+  const teamsStats = useMemo(() => calculateTeamsSummary(data), [data]);
+
+  const filteredTeams = useMemo(() => {
+    return teamsStats.teamsList.filter((team) => {
+      if (teamStatusFilter === 'verified' && team.status !== 'Verified') return false;
+      if (teamStatusFilter === 'pending' && team.status === 'Verified') return false;
+
+      if (teamSearch.trim()) {
+        const term = teamSearch.toLowerCase().trim();
+        const matchesName = team.name.toLowerCase().includes(term);
+        const matchesCollege = team.college.toLowerCase().includes(term);
+        const matchesLead = team.leadName && team.leadName.toLowerCase().includes(term);
+        const matchesMembers = team.members.some((m) => m.name.toLowerCase().includes(term));
+        const matchesEvents = team.events.some((e) => e.toLowerCase().includes(term));
+        return matchesName || matchesCollege || matchesLead || matchesMembers || matchesEvents;
+      }
+      return true;
+    });
+  }, [teamsStats.teamsList, teamSearch, teamStatusFilter]);
+
+  const handleVerifySquad = (team) => {
+    if (!onToggleVerify) return;
+    if (!team.allVerified) {
+      team.members.forEach((m) => {
+        if (!m.isVerified) onToggleVerify(m);
+      });
+    } else {
+      team.members.forEach((m) => {
+        onToggleVerify(m);
+      });
+    }
+  };
 
   // Recent 5 Registrations
   const recentRegistrations = [...data].slice(0, 5);
@@ -100,8 +150,8 @@ export default function Dashboard({ data, onSelectParticipant, onNavigate, onTog
         </div>
       </div>
 
-      {/* 📊 6 Executive KPI Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* 📊 Executive KPI Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
         <StatCard
           title="Total Participants"
           value={formatNumber(metrics.totalParticipants)}
@@ -112,6 +162,21 @@ export default function Dashboard({ data, onSelectParticipant, onNavigate, onTog
           onClick={() => onNavigate('participants', 'all')}
           accentColor="from-burgundy-700 to-burgundy-900"
           iconBg="bg-burgundy-50 border-burgundy-100 text-burgundy-800"
+        />
+
+        <StatCard
+          title="Registered Teams"
+          value={formatNumber(teamsStats.totalTeams)}
+          subtitle={`${teamsStats.teamParticipantsCount} in teams (${teamsStats.avgTeamSize} avg)`}
+          icon={Users2}
+          badgeText={`${teamsStats.totalTeams} Squads`}
+          badgeColor="bg-purple-100 text-purple-900 border border-purple-200"
+          onClick={() => {
+            const el = document.getElementById('teams-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }}
+          accentColor="from-purple-700 to-indigo-900"
+          iconBg="bg-purple-50 border-purple-200 text-purple-800"
         />
 
         <StatCard
@@ -300,7 +365,282 @@ export default function Dashboard({ data, onSelectParticipant, onNavigate, onTog
 
       </div>
 
-      {/* Row 2: Live Recent Registrations Feed Table */}
+      {/* 🏆 Row 2: Registered Teams & Squads Section */}
+      <div id="teams-section" className="card-elevated rounded-2xl p-5 sm:p-6 space-y-5 bg-white border border-slate-200">
+        
+        {/* Teams Header Bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-purple-50 border border-purple-200 text-purple-800 shadow-2xs">
+              <Users2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 font-outfit uppercase tracking-wider flex items-center gap-2">
+                <span>Registered Teams & Squads</span>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200 font-mono font-bold">
+                  {teamsStats.totalTeams} Teams
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                Collaborative student squads, leadership, team rosters, and registered competitive events
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Search & Filter Controls */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <div className="relative">
+              <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={teamSearch}
+                onChange={(e) => setTeamSearch(e.target.value)}
+                placeholder="Search team, lead, college..."
+                className="pl-8 pr-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-xl bg-slate-50/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-800/20 focus:border-purple-800 transition-all w-full sm:w-56"
+              />
+            </div>
+
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-bold shrink-0">
+              <button
+                type="button"
+                onClick={() => setTeamStatusFilter('all')}
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                  teamStatusFilter === 'all' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                All ({teamsStats.totalTeams})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTeamStatusFilter('verified')}
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                  teamStatusFilter === 'verified' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Verified ({teamsStats.fullyVerifiedTeams})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTeamStatusFilter('pending')}
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                  teamStatusFilter === 'pending' ? 'bg-white text-amber-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Pending ({teamsStats.pendingTeams})
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Teams Mini-Ribbon Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-3 rounded-xl bg-purple-50/60 border border-purple-100 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-extrabold text-purple-700 uppercase tracking-wider block">Total Squads</span>
+              <span className="text-xl font-extrabold font-outfit text-purple-950 font-mono">{teamsStats.totalTeams}</span>
+            </div>
+            <Users2 className="h-5 w-5 text-purple-700/60 shrink-0" />
+          </div>
+
+          <div className="p-3 rounded-xl bg-blue-50/60 border border-blue-100 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-extrabold text-blue-700 uppercase tracking-wider block">Students in Teams</span>
+              <span className="text-xl font-extrabold font-outfit text-blue-950 font-mono">{teamsStats.teamParticipantsCount}</span>
+            </div>
+            <Users className="h-5 w-5 text-blue-700/60 shrink-0" />
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Avg Squad Size</span>
+              <span className="text-xl font-extrabold font-outfit text-slate-900 font-mono">{teamsStats.avgTeamSize} <span className="text-xs text-slate-500 font-sans font-medium">members</span></span>
+            </div>
+            <Award className="h-5 w-5 text-slate-400 shrink-0" />
+          </div>
+
+          <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider block">Fully Verified</span>
+              <span className="text-xl font-extrabold font-outfit text-emerald-950 font-mono">{teamsStats.fullyVerifiedTeams} / {teamsStats.totalTeams}</span>
+            </div>
+            <CheckCircle2 className="h-5 w-5 text-emerald-600/70 shrink-0" />
+          </div>
+        </div>
+
+        {/* Team Cards Grid */}
+        {filteredTeams.length === 0 ? (
+          <div className="py-12 text-center text-slate-400 text-xs font-medium bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+            No teams found matching your search or filter.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredTeams.map((team) => (
+              <div
+                key={team.key}
+                className="rounded-2xl border border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-card transition-all flex flex-col justify-between overflow-hidden group"
+              >
+                {/* Team Card Header */}
+                <div className="p-4 bg-gradient-to-br from-slate-50/80 to-white border-b border-slate-100 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center space-x-2.5">
+                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-800 to-indigo-900 text-white font-extrabold flex items-center justify-center text-sm shadow-sm shrink-0">
+                        {team.name ? team.name.slice(0, 2).toUpperCase() : 'TM'}
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-slate-900 text-sm font-outfit leading-tight group-hover:text-purple-900 transition-colors">
+                          {team.name}
+                        </h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            {team.memberCount} Members
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold shrink-0 ${
+                      team.status === 'Verified'
+                        ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                        : team.status === 'Partial'
+                        ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                        : 'bg-amber-100 text-amber-900 border border-amber-200'
+                    }`}>
+                      {team.status === 'Verified' ? (
+                        <>
+                          <CheckCircle2 className="h-3 w-3 text-emerald-700" />
+                          <span>Verified</span>
+                        </>
+                      ) : team.status === 'Partial' ? (
+                        <>
+                          <Clock className="h-3 w-3 text-blue-700" />
+                          <span>{team.verifiedCount}/{team.memberCount} Verified</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="h-3 w-3 text-amber-700" />
+                          <span>Pending Audit</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* College & Dept */}
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center space-x-1.5 text-slate-700 font-semibold truncate" title={team.college}>
+                      <Building className="h-3.5 w-3.5 text-burgundy-800 shrink-0" />
+                      <span className="truncate">{team.college}</span>
+                    </div>
+                    {team.department && (
+                      <div className="text-[11px] text-slate-500 font-medium pl-5 truncate">
+                        {team.department} ({team.year})
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Team Members List */}
+                <div className="p-4 space-y-2.5 flex-1">
+                  <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                    <span>Squad Roster</span>
+                    <span className="text-[10px] font-mono text-slate-500 lowercase">{team.memberCount} registered</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {team.members.map((member) => (
+                      <div
+                        key={member.id}
+                        onClick={() => onSelectParticipant && onSelectParticipant(member)}
+                        className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/60 flex items-center justify-between gap-2 cursor-pointer transition-colors group/item"
+                      >
+                        <div className="flex items-center space-x-2 min-w-0">
+                          <div className={`h-6 w-6 rounded-lg text-[10px] font-bold flex items-center justify-center shrink-0 ${
+                            member.isLead
+                              ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                              : 'bg-blue-100 text-blue-900 border border-blue-200'
+                          }`}>
+                            {member.name ? member.name[0].toUpperCase() : 'M'}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-bold text-slate-900 text-xs truncate block group-hover/item:text-purple-900 transition-colors">
+                              {member.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono block">
+                              {member.id}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-1.5 shrink-0">
+                          {member.isLead ? (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-purple-100 text-purple-900 border border-purple-200 flex items-center gap-1">
+                              <Crown className="h-2.5 w-2.5 text-purple-700" />
+                              <span>Lead</span>
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-blue-100 text-blue-900 border border-blue-200">
+                              Member
+                            </span>
+                          )}
+
+                          <span className={`h-2 w-2 rounded-full ${
+                            member.isVerified ? 'bg-emerald-500' : 'bg-amber-500'
+                          }`} title={member.isVerified ? 'Verified' : 'Pending'} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Registered Events */}
+                  {team.events && team.events.length > 0 && (
+                    <div className="pt-2 border-t border-slate-100 space-y-1">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                        Registered Events
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {team.events.map((evt, i) => (
+                          <span
+                            key={i}
+                            className="px-2 py-0.5 rounded-md bg-burgundy-50 border border-burgundy-100 text-burgundy-900 text-[10px] font-bold"
+                          >
+                            {evt}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Team Card Footer Actions */}
+                <div className="p-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onViewTeam ? onViewTeam(team.name) : onNavigate('participants', 'all')}
+                    className="flex-1 py-1.5 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <span>View in Directory</span>
+                    <ArrowRight className="h-3 w-3 text-slate-400" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleVerifySquad(team)}
+                    className={`py-1.5 px-3 rounded-xl font-bold text-xs transition-all active:scale-95 cursor-pointer ${
+                      team.allVerified
+                        ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                    }`}
+                  >
+                    {team.allVerified ? 'Unverify Squad' : 'Verify Squad'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Row 3: Live Recent Registrations Feed Table */}
       <div className="card-elevated rounded-2xl overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white">
           <div>

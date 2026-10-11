@@ -386,3 +386,94 @@ export function generateInsights(data = []) {
 
   return insights;
 }
+
+export function calculateTeamsSummary(data = []) {
+  const teamsMap = {};
+  let soloCount = 0;
+  let teamParticipantsCount = 0;
+
+  data.forEach(p => {
+    const rawTeamName = p.teamName ? String(p.teamName).trim() : '';
+    if (!rawTeamName) {
+      soloCount++;
+      return;
+    }
+
+    teamParticipantsCount++;
+    const tKey = rawTeamName.toLowerCase();
+    if (!teamsMap[tKey]) {
+      teamsMap[tKey] = {
+        name: rawTeamName,
+        key: tKey,
+        college: p.college || 'Unspecified Institution',
+        department: p.department || 'N/A',
+        year: p.year || 'N/A',
+        events: Array.isArray(p.events) ? [...p.events] : [],
+        members: [],
+        lead: null,
+        leadName: p.leadName || p.name,
+        verifiedCount: 0,
+        pendingCount: 0,
+        allVerified: true,
+        anyVerified: false,
+      };
+    }
+
+    if (Array.isArray(p.events)) {
+      p.events.forEach(ev => {
+        if (!teamsMap[tKey].events.includes(ev)) {
+          teamsMap[tKey].events.push(ev);
+        }
+      });
+    }
+
+    teamsMap[tKey].members.push(p);
+
+    if (p.isVerified) {
+      teamsMap[tKey].verifiedCount++;
+      teamsMap[tKey].anyVerified = true;
+    } else {
+      teamsMap[tKey].pendingCount++;
+      teamsMap[tKey].allVerified = false;
+    }
+
+    if (p.isLead || (!teamsMap[tKey].lead && !p.isTeamMember)) {
+      teamsMap[tKey].lead = p;
+      teamsMap[tKey].leadName = p.name;
+    }
+  });
+
+  const teamsList = Object.values(teamsMap).map(t => {
+    if (!t.lead && t.members.length > 0) {
+      t.lead = t.members[0];
+      t.leadName = t.members[0].name;
+    }
+    const totalMembers = t.members.length;
+    let status = 'Pending';
+    if (t.allVerified && totalMembers > 0) status = 'Verified';
+    else if (t.anyVerified) status = 'Partial';
+
+    return {
+      ...t,
+      memberCount: totalMembers,
+      status,
+    };
+  });
+
+  teamsList.sort((a, b) => b.memberCount - a.memberCount || a.name.localeCompare(b.name));
+
+  const totalTeams = teamsList.length;
+  const avgTeamSize = totalTeams > 0 ? (teamParticipantsCount / totalTeams).toFixed(1) : '0';
+  const fullyVerifiedTeams = teamsList.filter(t => t.status === 'Verified').length;
+  const pendingTeams = teamsList.filter(t => t.status !== 'Verified').length;
+
+  return {
+    teamsList,
+    totalTeams,
+    teamParticipantsCount,
+    soloCount,
+    avgTeamSize,
+    fullyVerifiedTeams,
+    pendingTeams,
+  };
+}
