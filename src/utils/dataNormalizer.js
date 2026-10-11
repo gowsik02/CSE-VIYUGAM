@@ -122,6 +122,34 @@ export function areNamesEquivalent(nameA, nameB) {
   return false;
 }
 
+/**
+ * Normalizes team name into a canonical grouping key.
+ * Strips whitespace, case differences, and symbols (&, -, _) so that
+ * "Vortex", "Vortex ", "COFFEE&CODE", and "COFFEE & CODE" group together flawlessly.
+ */
+export function normalizeTeamKey(teamName) {
+  if (!teamName) return '';
+  return String(teamName)
+    .toLowerCase()
+    .replace(/[\s\-_&]+/g, '')
+    .trim();
+}
+
+/**
+ * Formats a clean display name for a team.
+ * Preserves uppercase acronyms and trims extraneous trailing/leading spaces.
+ */
+export function formatTeamDisplayName(teamName) {
+  if (!teamName) return '';
+  const cleaned = String(teamName).trim().replace(/\s+/g, ' ');
+  if (!cleaned) return '';
+  // If lowercase, convert to Title Case
+  if (cleaned === cleaned.toLowerCase()) {
+    return cleaned.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  }
+  return cleaned;
+}
+
 export function detectColumnMapping(headers = []) {
   const mapping = {};
   const lowerHeaders = headers.map(h => String(h || '').trim().toLowerCase());
@@ -194,6 +222,25 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
     unverifiedKeys = verificationState.unverifiedKeys || new Set();
   }
 
+  // 0. Pre-Pass: Build Canonical Team Map to group identical/spaced team names
+  const canonicalTeamMap = new Map(); // teamKey -> best canonical display name
+  rawRows.forEach((row) => {
+    const rawTName = row[mapping.teamName] || '';
+    const tKey = normalizeTeamKey(rawTName);
+    if (tKey) {
+      const formatted = formatTeamDisplayName(rawTName);
+      if (!canonicalTeamMap.has(tKey)) {
+        canonicalTeamMap.set(tKey, formatted);
+      } else {
+        const existing = canonicalTeamMap.get(tKey);
+        // Prefer capitalized/longer representation over lowercase/shorter
+        if (existing === existing.toLowerCase() && formatted !== formatted.toLowerCase()) {
+          canonicalTeamMap.set(tKey, formatted);
+        }
+      }
+    }
+  });
+
   // 1. First Pass: Map each raw row as a Primary Registration
   const primaryRegistrations = rawRows.map((row, index) => {
     const rawName = row[mapping.name] || '';
@@ -242,25 +289,29 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
     const department = String(rawDept).trim() || 'CSE / IT';
     const year = String(rawYear).trim() || 'N/A';
     const transactionId = String(rawTxnId).trim();
-    const teamName = String(rawTeamName).trim();
+
+    // Canonicalize team name so all members share the exact same formatted name
+    const teamKey = normalizeTeamKey(rawTeamName);
+    const teamName = teamKey ? canonicalTeamMap.get(teamKey) : '';
     const teamSize = String(rawTeamSize).trim();
     const paymentScreenshot = String(rawScreenshot).trim();
 
+    // Unique candidate keys strictly isolated to THIS participant (immune to teammate collisions)
+    const cleanNormName = normalizeName(name);
+    const cleanNormCollege = college.toLowerCase().trim();
     const candidateKeys = [
       id,
       `row_${rowIndex}`,
-      transactionId && transactionId.length > 2 ? `txn_${transactionId}` : null,
-      email && email.length > 3 ? `email_${email}` : null,
-      phone && phone.length > 4 ? `phone_${phone}` : null,
-      name && college ? `namecol_${name.toLowerCase().trim()}_${college.toLowerCase().trim()}` : null,
+      cleanNormName ? `name_${cleanNormName}` : null,
+      cleanNormName && cleanNormCollege ? `namecol_${cleanNormName}_${cleanNormCollege}` : null,
     ].filter(Boolean);
 
     const isExplicitlyVerified = candidateKeys.some(k => verifiedKeys.has(k));
     const isExplicitlyUnverified = candidateKeys.some(k => unverifiedKeys.has(k));
 
     // CRITICAL REQUIREMENT:
-    // New registrations from Google Sheets do NOT automatically go to Verified!
-    // They are ONLY verified if explicitly verified by an admin, or if an explicit verification column says verified.
+    // Once verified by organizer, it MUST stay verified permanently!
+    // New incoming rows default to unverified unless explicit sheet column says verified.
     let isVerified = false;
     if (isExplicitlyVerified) {
       isVerified = true;
@@ -271,7 +322,6 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
       if (['verified', 'approved', 'yes', 'true'].includes(explicitSheetStatus)) {
         isVerified = true;
       } else {
-        // Default to false for all incoming sheet registrations
         isVerified = false;
       }
     }
@@ -291,6 +341,7 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
       department,
       year,
       teamName,
+      teamKey,
       teamSize,
       teamMembers,
       amount,
@@ -316,15 +367,13 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
   const teamLeaders = new Map(); // teamKey -> first primary registrant of that team
 
   primaryRegistrations.forEach(p => {
-    const tKey = p.teamName ? p.teamName.toLowerCase().trim() : '';
-    if (tKey && !teamLeaders.has(tKey)) {
-      teamLeaders.set(tKey, p);
+    if (p.teamKey && !teamLeaders.has(p.teamKey)) {
+      teamLeaders.set(p.teamKey, p);
     }
   });
 
   primaryRegistrations.forEach(p => {
-    const tKey = p.teamName ? p.teamName.toLowerCase().trim() : '';
-    const leader = tKey ? teamLeaders.get(tKey) : null;
+    const leader = p.teamKey ? teamLeaders.get(p.teamKey) : null;
 
     // Check if p is listed in team members of ANY other primary registration
     const isListedInAnyTeamMembers = primaryRegistrations.some(other => {
@@ -395,15 +444,15 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
       // Team member does not exist as separate registration -> Include as participant!
       const memberId = `${primary.id}-M${memberCounter}`;
       const memberDisplayIndex = `${primary.rowIndex}-M${memberCounter}`;
-      const memberCleanName = cleanMemberName.toLowerCase().trim();
-      const cleanCollege = primary.college.toLowerCase().trim();
+      const memberCleanNormName = normalizeName(cleanMemberName);
+      const cleanCollegeNorm = primary.college.toLowerCase().trim();
 
       const memberCandidateKeys = [
         memberId,
-        `member_${normalizeName(cleanMemberName)}`,
-        `namecol_${memberCleanName}_${cleanCollege}`,
-        `row_${primary.rowIndex}_m${memberCounter}`,
-      ];
+        memberCleanNormName ? `name_${memberCleanNormName}` : null,
+        memberCleanNormName && cleanCollegeNorm ? `namecol_${memberCleanNormName}_${cleanCollegeNorm}` : null,
+        `row_${primary.rowIndex}_m_${memberCleanNormName}`,
+      ].filter(Boolean);
 
       const isMemberExplicitlyVerified = memberCandidateKeys.some(k => verifiedKeys.has(k));
       const isMemberExplicitlyUnverified = memberCandidateKeys.some(k => unverifiedKeys.has(k));
@@ -429,6 +478,7 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
         department: primary.department,
         year: primary.year,
         teamName: primary.teamName,
+        teamKey: primary.teamKey,
         teamSize: primary.teamSize,
         teamMembers: primary.teamMembers,
         amount: primary.amount,

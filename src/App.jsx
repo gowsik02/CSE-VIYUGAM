@@ -14,7 +14,7 @@ import Reports from './pages/Reports';
 
 import { getRegistrations } from './services/api';
 import { normalizeRegistrationData } from './utils/dataNormalizer';
-import { getVerificationState, toggleVerificationStatus } from './utils/verificationStorage';
+import { getVerificationState, toggleVerificationStatus, setBatchParticipantsVerification } from './utils/verificationStorage';
 import { RefreshCw, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
 import Papa from 'papaparse';
 
@@ -74,6 +74,11 @@ export default function App() {
   // Jump to Directory filtered by specific team
   const handleViewTeamInDirectory = (teamName) => {
     setSearchTerm(teamName);
+    setSelectedCollege('All');
+    setSelectedStatus('All');
+    setSelectedEvent('All');
+    setSelectedDept('All');
+    setSelectedYear('All');
     setActivePage('participants');
     setParticipantsTab('all');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -131,7 +136,24 @@ export default function App() {
     }
 
     const isNowVerified = reNormalized.normalizedData.find(d => d.id === targetParticipant.id)?.isVerified;
-    showNotification(isNowVerified ? 'Registration marked as Verified' : 'Registration moved to New / Pending');
+    showNotification(isNowVerified ? `Verified: ${targetParticipant.name}` : `Moved to Pending: ${targetParticipant.name}`);
+  };
+
+  // Batch Verification Handler for Squads or Multiple Participants
+  const handleBatchVerify = (participants = [], shouldVerify = true) => {
+    if (!participants || participants.length === 0) return;
+
+    const updatedState = setBatchParticipantsVerification(participants, shouldVerify);
+    setVerificationState(updatedState);
+
+    const reNormalized = normalizeRegistrationData(rawRows, rawHeaders, updatedState);
+    setNormalizedData(reNormalized.normalizedData);
+
+    showNotification(
+      shouldVerify
+        ? `Squad verified: ${participants.length} member${participants.length > 1 ? 's' : ''}`
+        : `Squad unverified: ${participants.length} member${participants.length > 1 ? 's' : ''}`
+    );
   };
 
   useEffect(() => {
@@ -186,8 +208,10 @@ export default function App() {
         const matchesPhone = item.phone.toLowerCase().includes(term);
         const matchesTxn = item.transactionId.toLowerCase().includes(term);
         const matchesEvents = item.events.some(e => e.toLowerCase().includes(term));
+        const matchesTeam = item.teamName && item.teamName.toLowerCase().includes(term);
+        const matchesLead = item.leadName && item.leadName.toLowerCase().includes(term);
 
-        if (!matchesName && !matchesCollege && !matchesEmail && !matchesPhone && !matchesTxn && !matchesEvents) {
+        if (!matchesName && !matchesCollege && !matchesEmail && !matchesPhone && !matchesTxn && !matchesEvents && !matchesTeam && !matchesLead) {
           return false;
         }
       }
@@ -363,6 +387,7 @@ export default function App() {
                   onSelectParticipant={setSelectedParticipant}
                   onNavigate={handleNavigate}
                   onToggleVerify={handleToggleVerify}
+                  onBatchVerify={handleBatchVerify}
                   onViewTeam={handleViewTeamInDirectory}
                 />
               )}

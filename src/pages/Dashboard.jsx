@@ -56,6 +56,7 @@ export default function Dashboard({
   onSelectParticipant,
   onNavigate,
   onToggleVerify,
+  onBatchVerify,
   onViewTeam,
 }) {
   const [teamSearch, setTeamSearch] = useState('');
@@ -87,14 +88,16 @@ export default function Dashboard({
   }, [teamsStats.teamsList, teamSearch, teamStatusFilter]);
 
   const handleVerifySquad = (team) => {
-    if (!onToggleVerify) return;
-    if (!team.allVerified) {
+    if (!team || !team.members || team.members.length === 0) return;
+    const shouldVerify = !team.allVerified;
+
+    if (onBatchVerify) {
+      onBatchVerify(team.members, shouldVerify);
+    } else if (onToggleVerify) {
       team.members.forEach((m) => {
-        if (!m.isVerified) onToggleVerify(m);
-      });
-    } else {
-      team.members.forEach((m) => {
-        onToggleVerify(m);
+        if (shouldVerify ? !m.isVerified : m.isVerified) {
+          onToggleVerify(m);
+        }
       });
     }
   };
