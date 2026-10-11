@@ -71,6 +71,14 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Jump to Directory filtered by specific team
+  const handleViewTeamInDirectory = (teamName) => {
+    setSearchTerm(teamName);
+    setActivePage('participants');
+    setParticipantsTab('all');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Fetch Data Function
   const fetchData = useCallback(async (showToast = true) => {
     setIsFetching(true);
@@ -355,6 +363,7 @@ export default function App() {
                   onSelectParticipant={setSelectedParticipant}
                   onNavigate={handleNavigate}
                   onToggleVerify={handleToggleVerify}
+                  onViewTeam={handleViewTeamInDirectory}
                 />
               )}
 
