@@ -24,17 +24,51 @@ const COLUMN_ALIASES = {
 };
 
 /**
+ * Generates a canonical matching key for an institution.
+ * Accounts for common Indian transliteration and spelling variations:
+ * - "sakthi" vs "shakthi" vs "shakti" vs "sakti" (same college)
+ * - "sree" vs "shree" vs "sri"
+ * - "collage" vs "college"
+ * - "engg" vs "engineering"
+ * - "tech" vs "technology"
+ * - "inst" vs "institute"
+ */
+export function getCollegeCanonicalKey(rawCollege) {
+  if (!rawCollege) return '';
+  let str = String(rawCollege).toLowerCase().trim();
+
+  // Normalize phonetic variations of Sakthi / Shakthi
+  str = str.replace(/shakthi/g, 'sakthi')
+           .replace(/shakti/g, 'sakthi')
+           .replace(/sakti/g, 'sakthi');
+
+  // Normalize Sri / Sree / Shree
+  str = str.replace(/\b(sree|shree)\b/g, 'sri');
+
+  // Common spelling typos and abbreviations
+  str = str.replace(/\bcollage\b/g, 'college');
+  str = str.replace(/\bengg\b/g, 'engineering');
+  str = str.replace(/\btech\b/g, 'technology');
+  str = str.replace(/\binst\b/g, 'institute');
+
+  // Strip punctuation and collapse spaces
+  str = str.replace(/[.,\-_/()]/g, ' ').replace(/\s+/g, ' ').trim();
+  return str;
+}
+
+/**
  * Normalizes and groups variations of college names case-insensitively.
- * Converts "ppg institute of technology", "PPG INSTITUTE OF TECHNOLOGY", etc. -> "PPG Institute of Technology"
+ * Unifies "Sree Sakthi Engineering College" and "SREE SHAKTHI ENGINEERING COLLEGE" -> "Sree Sakthi Engineering College"
+ * Converts "ppg institute of technology", "PPG INSTITUTE OF TECHNOLOGY" -> "PPG Institute of Technology"
  */
 export function normalizeCollegeName(rawCollege, canonicalMap = new Map()) {
   if (!rawCollege) return 'Unspecified Institution';
   
-  // Clean string: trim, collapse spaces, lowercase for matching key
+  // Clean string: trim, collapse spaces
   const cleaned = String(rawCollege).trim().replace(/\s+/g, ' ');
   if (!cleaned) return 'Unspecified Institution';
 
-  const lookupKey = cleaned.toLowerCase();
+  const lookupKey = getCollegeCanonicalKey(cleaned);
 
   // If we already have a canonical title-cased name for this key, return it
   if (canonicalMap.has(lookupKey)) {
@@ -43,12 +77,17 @@ export function normalizeCollegeName(rawCollege, canonicalMap = new Map()) {
 
   // Convert to clean Title Case for display
   const titleCased = cleaned.split(' ').map(word => {
-    if (word.length <= 2 && ['of', 'in', 'at', 'nd', 'st', 'rd', 'th'].includes(word.toLowerCase())) {
-      return word.toLowerCase();
+    const lower = word.toLowerCase();
+    if (['of', 'in', 'at', 'nd', 'st', 'rd', 'th', 'to', 'and', 'for', 'the'].includes(lower)) {
+      return lower;
     }
     // Keep acronyms uppercase
-    if (['ppg', 'cse', 'it', 'kit', 'psg', 'skcet', 'srec', 'cit', 'gct', 'dsu', 'biet', 'anna', 'ssec'].includes(word.toLowerCase())) {
-      return word.toUpperCase();
+    if (['ppg', 'cse', 'it', 'kit', 'psg', 'skcet', 'srec', 'cit', 'gct', 'dsu', 'biet', 'anna', 'ssec', 'siet'].includes(lower)) {
+      return lower.toUpperCase();
+    }
+    // Standardize shakthi / shakti to clean Sakthi display spelling
+    if (lower === 'shakthi' || lower === 'shakti') {
+      return 'Sakthi';
     }
     return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
   }).join(' ');
