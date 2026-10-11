@@ -23,3 +23,5 @@ app.listen(PORT, () => {
   console.log(`🚀 CSE VIYUGAM Backend Server running on port ${PORT}`);
   console.log(` Spreadsheet ID: ${process.env.GOOGLE_SPREADSHEET_ID || '1T5w7Jk5-M_1SFtyXAF4LwtQoaWjO3Y6XFVeWvOfGAyU'}`);
 });
+
+export default app;
