@@ -43,11 +43,21 @@ export default function ParticipantDetailModal({ participant, onClose, onToggleV
               {initials}
             </div>
             <div>
-              <h3 className="text-lg font-extrabold text-slate-900 font-outfit leading-tight">
-                {participant.name}
+              <h3 className="text-lg font-extrabold text-slate-900 font-outfit leading-tight flex items-center gap-2">
+                <span>{participant.name}</span>
+                {participant.isTeamMember && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200">
+                    Team Member
+                  </span>
+                )}
+                {!participant.isTeamMember && participant.teamName && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
+                    Team Lead
+                  </span>
+                )}
               </h3>
               <p className="text-xs text-slate-500 font-mono font-medium mt-0.5">
-                ID: <strong className="text-slate-800">{participant.id}</strong> | Row #{participant.rowIndex}
+                ID: <strong className="text-slate-800">{participant.id}</strong> | Row #{participant.displayRowIndex || participant.rowIndex}
               </p>
             </div>
           </div>
@@ -177,6 +187,19 @@ export default function ParticipantDetailModal({ participant, onClose, onToggleV
                 <Users className="h-4 w-4 text-burgundy-800" /> Team Information
               </h4>
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                {participant.isTeamMember && participant.leadName && (
+                  <div className="p-2.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-blue-950 text-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-blue-700 font-medium text-[11px] block">Registered Under Team Lead</span>
+                      <strong className="font-extrabold text-blue-950">{participant.leadName}</strong>
+                    </div>
+                    {participant.leadId && (
+                      <span className="font-mono text-[10px] bg-white px-2 py-0.5 rounded border border-blue-200 font-bold text-blue-800">
+                        {participant.leadId}
+                      </span>
+                    )}
+                  </div>
+                )}
                 {participant.teamName && (
                   <div>
                     <span className="text-slate-500 font-medium">Team Name: </span>

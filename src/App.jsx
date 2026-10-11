@@ -221,7 +221,32 @@ export default function App() {
 
   const handleExportCSV = (exportArray, filename = 'cse_viyugam_export.csv') => {
     if (!exportArray || exportArray.length === 0) return;
-    const csvStr = Papa.unparse(exportArray);
+
+    const dataToExport = exportArray.map(item => {
+      if (item && typeof item === 'object' && item.name && item.college) {
+        return {
+          'Participant ID': item.id,
+          'Row #': item.displayRowIndex || item.rowIndex,
+          'Participant Name': item.name,
+          'Role': item.teamRole || (item.isTeamMember ? 'Team Member' : (item.teamName ? 'Team Lead' : 'Individual')),
+          'Team Name': item.teamName || 'N/A',
+          'Team Lead': item.isTeamMember ? (item.leadName || 'N/A') : (item.name || 'N/A'),
+          'College / Institution': item.college,
+          'Department': item.department,
+          'Year of Study': item.year,
+          'Registered Events': Array.isArray(item.events) ? item.events.join(', ') : (item.events || ''),
+          'Verification Status': item.isVerified ? 'Verified' : 'New / Pending',
+          'Transaction ID': item.transactionId || 'N/A',
+          'Payment Proof Link': item.paymentScreenshot || '',
+          'Email': item.email || '',
+          'Phone': item.phone || '',
+          'Date & Time Registered': item.timestamp || '',
+        };
+      }
+      return item;
+    });
+
+    const csvStr = Papa.unparse(dataToExport);
     const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

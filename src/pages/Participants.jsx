@@ -220,7 +220,7 @@ export default function Participants({
                   
                   {/* Row Index */}
                   <td className="table-body-cell font-mono text-slate-400 text-[11px] font-bold">
-                    #{item.rowIndex}
+                    #{item.displayRowIndex || item.rowIndex}
                   </td>
 
                   {/* Participant Name & ID */}
@@ -229,15 +229,40 @@ export default function Participants({
                       onClick={() => onSelectParticipant && onSelectParticipant(item)}
                       className="cursor-pointer group flex items-center space-x-2.5"
                     >
-                      <div className="h-8 w-8 rounded-lg bg-burgundy-50 border border-burgundy-100 text-burgundy-800 font-bold flex items-center justify-center shrink-0 group-hover:bg-burgundy-800 group-hover:text-white transition-colors">
+                      <div className={`h-8 w-8 rounded-lg font-bold flex items-center justify-center shrink-0 transition-colors ${
+                        item.isTeamMember
+                          ? 'bg-blue-50 border border-blue-200 text-blue-800 group-hover:bg-blue-800 group-hover:text-white'
+                          : 'bg-burgundy-50 border border-burgundy-100 text-burgundy-800 group-hover:bg-burgundy-800 group-hover:text-white'
+                      }`}>
                         {item.name ? item.name[0].toUpperCase() : 'P'}
                       </div>
                       <div>
-                        <div className="font-bold text-slate-900 group-hover:text-burgundy-800 transition-colors">
-                          {item.name}
+                        <div className="font-bold text-slate-900 group-hover:text-burgundy-800 transition-colors flex items-center gap-1.5 flex-wrap">
+                          <span>{item.name}</span>
+                          {item.isTeamMember ? (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 inline-flex items-center">
+                              Team Member
+                            </span>
+                          ) : item.teamName ? (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200 inline-flex items-center">
+                              Team Lead
+                            </span>
+                          ) : null}
                         </div>
-                        <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
+                        <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 flex-wrap">
                           <span>{item.id}</span>
+                          {item.teamName && (
+                            <>
+                              <span>•</span>
+                              <span className="text-slate-600 font-semibold font-sans">Team: {item.teamName}</span>
+                            </>
+                          )}
+                          {item.isTeamMember && item.leadName && (
+                            <>
+                              <span>•</span>
+                              <span className="text-slate-500 font-sans">Lead: {item.leadName}</span>
+                            </>
+                          )}
                           {item.timestamp && (
                             <>
                               <span>•</span>
