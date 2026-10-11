@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Building2, Download, Eye, Search, Trophy, Award, CheckCircle } from 'lucide-react';
+import { Building2, Download, Eye, Search, Trophy, Award, CheckCircle, Clock, ArrowRight, ExternalLink } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calculateCollegeParticipation } from '../utils/analytics';
 import { formatCurrency, formatNumber } from '../utils/formatters';
@@ -18,6 +18,11 @@ export default function Colleges({ data, onExportCSV, onToggleVerify, onViewInDi
     return list.filter(c => c.college.toLowerCase().includes(collegeSearch.toLowerCase().trim()));
   }, [collegeMetrics, showAll, collegeSearch]);
 
+  // Top 3 Podium
+  const topThree = useMemo(() => {
+    return collegeMetrics.topColleges.slice(0, 3);
+  }, [collegeMetrics]);
+
   // Filter participants for detail modal
   const collegeParticipants = selectedCollegeForModal
     ? data.filter(d => d.college.toLowerCase().trim() === selectedCollegeForModal.toLowerCase().trim())
@@ -26,20 +31,63 @@ export default function Colleges({ data, onExportCSV, onToggleVerify, onViewInDi
   return (
     <div className="space-y-6">
       
+      {/* Top 3 Institutions Showcase Podium */}
+      {topThree.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {topThree.map((item, idx) => {
+            const medalColors = [
+              { bg: 'bg-amber-50 border-amber-200 text-amber-900', badge: 'bg-amber-500 text-white', label: '1st Place' },
+              { bg: 'bg-slate-100 border-slate-300 text-slate-900', badge: 'bg-slate-400 text-white', label: '2nd Place' },
+              { bg: 'bg-orange-50 border-orange-200 text-orange-950', badge: 'bg-orange-400 text-white', label: '3rd Place' },
+            ][idx];
+
+            return (
+              <div
+                key={idx}
+                onClick={() => setSelectedCollegeForModal(item.college)}
+                className={`card-elevated rounded-2xl p-5 border cursor-pointer group hover:scale-[1.01] transition-all select-none ${medalColors.bg}`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-2xs ${medalColors.badge}`}>
+                    {medalColors.label}
+                  </span>
+                  <Trophy className="h-5 w-5 opacity-80" />
+                </div>
+
+                <div className="mt-3">
+                  <h4 className="text-sm font-extrabold text-slate-900 font-outfit truncate group-hover:text-burgundy-800 transition-colors" title={item.college}>
+                    {item.college}
+                  </h4>
+                  <div className="flex items-baseline space-x-2 mt-2">
+                    <span className="text-2xl font-extrabold font-outfit text-slate-900">
+                      {item.participants}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500">Participants</span>
+                  </div>
+                  <div className="text-xs font-mono font-bold text-emerald-800 mt-1">
+                    {formatCurrency(item.amount)} verified
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* College Ranking Chart */}
       <div className="card-elevated rounded-2xl p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
-            <h2 className="text-base font-extrabold text-neutral-900 font-outfit uppercase tracking-wider flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-burgundy-800" /> College Participation Analytics
+            <h2 className="text-base font-extrabold text-slate-900 font-outfit uppercase tracking-wider flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-burgundy-800" /> College Participation Distribution
             </h2>
-            <p className="text-xs text-neutral-500 font-medium">
+            <p className="text-xs text-slate-500 font-medium">
               Institutional distribution across {collegeMetrics.totalColleges} participating colleges & universities
             </p>
           </div>
           <button
             onClick={() => onExportCSV(collegeMetrics.allColleges, 'college_participation_summary.csv')}
-            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-neutral-200 bg-white text-xs font-bold text-neutral-800 hover:bg-neutral-50 shadow-2xs active:scale-95 transition-all"
+            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 hover:bg-slate-50 shadow-2xs active:scale-95 transition-all cursor-pointer"
           >
             <Download className="h-4 w-4 text-burgundy-800" />
             <span>Export Ranking CSV</span>
@@ -58,16 +106,16 @@ export default function Colleges({ data, onExportCSV, onToggleVerify, onViewInDi
               <YAxis
                 type="category"
                 dataKey="college"
-                width={150}
+                width={160}
                 tick={{ fontSize: 11, fill: '#334155', fontWeight: 600 }}
-                tickFormatter={(val) => val.length > 22 ? `${val.substring(0, 19)}...` : val}
+                tickFormatter={(val) => val.length > 22 ? `${val.substring(0, 20)}...` : val}
               />
               <Tooltip
                 formatter={(value) => [`${value} Participants`, 'Registrations']}
                 contentStyle={{ backgroundColor: '#0F172A', color: '#fff', borderRadius: '12px', border: 'none', fontSize: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}
                 itemStyle={{ color: '#F8FAFC' }}
               />
-              <Bar dataKey="participants" fill="#7A0E0E" radius={[0, 8, 8, 0]} />
+              <Bar dataKey="participants" fill="#731010" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -75,133 +123,119 @@ export default function Colleges({ data, onExportCSV, onToggleVerify, onViewInDi
 
       {/* Detailed Institutional Table (Interactive) */}
       <div className="card-elevated rounded-2xl overflow-hidden">
-        <div className="p-5 border-b border-neutral-100 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white">
           <div>
-            <h3 className="text-sm font-extrabold text-neutral-900 font-outfit uppercase tracking-wider">
+            <h3 className="text-xs font-extrabold text-slate-900 font-outfit uppercase tracking-wider">
               Institutional Leaderboard & Roster
             </h3>
-            <p className="text-[11px] text-neutral-500 font-medium mt-0.5">
-              Click any college row to view all registered students from that institution
+            <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+              Click any college to view all registered students from that institution
             </p>
           </div>
 
           <div className="flex items-center space-x-3">
             <div className="relative">
-              <Search className="h-3.5 w-3.5 text-neutral-400 absolute left-3 top-2.5" />
+              <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-2.5" />
               <input
                 type="text"
                 value={collegeSearch}
                 onChange={(e) => setCollegeSearch(e.target.value)}
                 placeholder="Search college..."
-                className="pl-8 pr-3 py-1.5 text-xs font-medium border border-neutral-200 rounded-xl bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-burgundy-800/20 focus:border-burgundy-800"
+                className="pl-8 pr-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-burgundy-800/20 focus:border-burgundy-800"
               />
             </div>
 
             <button
               onClick={() => setShowAll(!showAll)}
-              className="px-3.5 py-1.5 rounded-xl bg-burgundy-50 text-burgundy-900 border border-burgundy-200 text-xs font-extrabold hover:bg-burgundy-100 transition-all active:scale-95"
+              className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
             >
-              {showAll ? 'Top 15 Only' : `View All (${collegeMetrics.totalColleges})`}
+              {showAll ? 'Show Top 15' : `Show All (${collegeMetrics.allColleges.length})`}
             </button>
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-neutral-50/90 border-b border-neutral-200 text-neutral-500 font-extrabold uppercase tracking-wider text-[10px]">
+            <thead>
               <tr>
-                <th className="py-3.5 px-4 w-16 text-center">Rank</th>
-                <th className="py-3.5 px-4">College / Institution Name</th>
-                <th className="py-3.5 px-4 text-center">Students</th>
-                <th className="py-3.5 px-4 text-center">Share</th>
-                <th className="py-3.5 px-4 text-center">Verified</th>
-                <th className="py-3.5 px-4 text-right">Revenue</th>
-                <th className="py-3.5 px-4 text-center">Action</th>
+                <th className="table-header-cell">Rank</th>
+                <th className="table-header-cell">College / Institution Name</th>
+                <th className="table-header-cell">Total Registered</th>
+                <th className="table-header-cell">Verified Count</th>
+                <th className="table-header-cell">Pending Count</th>
+                <th className="table-header-cell">Total Collected</th>
+                <th className="table-header-cell text-center">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100 bg-white">
-              {filteredColleges.map((item) => (
-                <tr
-                  key={item.rank}
-                  onClick={() => setSelectedCollegeForModal(item.college)}
-                  className="hover:bg-burgundy-50/30 cursor-pointer transition-colors group"
-                >
-                  <td className="py-3.5 px-4 text-center font-extrabold font-mono text-neutral-700">
-                    {item.rank === 1 && (
-                      <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300 shadow-2xs">
-                        🥇 1
-                      </span>
-                    )}
-                    {item.rank === 2 && (
-                      <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-slate-100 text-slate-800 font-bold border border-slate-300 shadow-2xs">
-                        🥈 2
-                      </span>
-                    )}
-                    {item.rank === 3 && (
-                      <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-amber-700/15 text-amber-950 font-bold border border-amber-600/30 shadow-2xs">
-                        🥉 3
-                      </span>
-                    )}
-                    {item.rank > 3 && (
-                      <span className="text-neutral-400">#{item.rank}</span>
-                    )}
-                  </td>
-                  
-                  <td className="py-3.5 px-4 font-bold text-neutral-900 group-hover:text-burgundy-900">
-                    <div className="flex items-center justify-between">
-                      <span>{item.college}</span>
-                      <span className="text-[10px] text-burgundy-800 opacity-0 group-hover:opacity-100 font-extrabold transition-opacity">
-                        Inspect Roster →
-                      </span>
-                    </div>
-                    {/* Share Bar */}
-                    <div className="w-full h-1.5 bg-neutral-100 rounded-full mt-1 overflow-hidden">
-                      <div
-                        className="h-full bg-burgundy-800 rounded-full"
-                        style={{ width: `${Math.max(item.percentage, 2)}%` }}
-                      />
-                    </div>
-                  </td>
-
-                  <td className="py-3.5 px-4 text-center font-extrabold text-burgundy-800 text-sm">
-                    {formatNumber(item.participants)}
-                  </td>
-
-                  <td className="py-3.5 px-4 text-center font-mono text-neutral-600 font-bold">
-                    {item.percentage}%
-                  </td>
-
-                  <td className="py-3.5 px-4 text-center font-extrabold text-emerald-800">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-900 border border-emerald-200">
-                      <CheckCircle className="h-3 w-3 mr-1 text-emerald-600" />
-                      {item.verified}
-                    </span>
-                  </td>
-
-                  <td className="py-3.5 px-4 text-right font-extrabold text-neutral-900 font-mono">
-                    {formatCurrency(item.amount)}
-                  </td>
-
-                  <td className="py-3.5 px-4 text-center">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedCollegeForModal(item.college);
-                      }}
-                      className="p-1.5 rounded-xl text-neutral-400 hover:text-burgundy-800 hover:bg-burgundy-50 transition-colors"
-                      title="Inspect college participants"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {filteredColleges.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-10 text-center text-slate-400">
+                    No matching colleges found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredColleges.map((c, index) => (
+                  <tr
+                    key={index}
+                    onClick={() => setSelectedCollegeForModal(c.college)}
+                    className="hover:bg-slate-50/80 cursor-pointer transition-colors group"
+                  >
+                    <td className="table-body-cell font-mono font-bold text-slate-400">
+                      #{index + 1}
+                    </td>
+
+                    <td className="table-body-cell">
+                      <div className="font-bold text-slate-900 group-hover:text-burgundy-800 transition-colors">
+                        {c.college}
+                      </div>
+                    </td>
+
+                    <td className="table-body-cell font-bold text-slate-900">
+                      <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 font-extrabold">
+                        {c.participants} students
+                      </span>
+                    </td>
+
+                    <td className="table-body-cell">
+                      <span className="text-emerald-700 font-bold flex items-center gap-1">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        {c.verifiedCount}
+                      </span>
+                    </td>
+
+                    <td className="table-body-cell">
+                      <span className="text-amber-700 font-bold flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {c.newCount}
+                      </span>
+                    </td>
+
+                    <td className="table-body-cell font-mono font-bold text-emerald-800">
+                      {formatCurrency(c.amount)}
+                    </td>
+
+                    <td className="table-body-cell text-center">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCollegeForModal(c.college);
+                        }}
+                        className="px-3 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 group-hover:bg-burgundy-800 group-hover:text-white group-hover:border-burgundy-800 transition-all cursor-pointer"
+                      >
+                        View Roster
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* College Roster Modal */}
+      {/* Detail Modal for College */}
       {selectedCollegeForModal && (
         <CollegeDetailsModal
           collegeName={selectedCollegeForModal}

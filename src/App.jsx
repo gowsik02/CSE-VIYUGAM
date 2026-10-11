@@ -15,7 +15,7 @@ import Reports from './pages/Reports';
 import { getRegistrations } from './services/api';
 import { normalizeRegistrationData } from './utils/dataNormalizer';
 import { getVerificationState, toggleVerificationStatus } from './utils/verificationStorage';
-import { RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
 import Papa from 'papaparse';
 
 export default function App() {
@@ -60,6 +60,7 @@ export default function App() {
     if (tab) {
       setParticipantsTab(tab);
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Jump to Directory filtered by specific college
@@ -67,6 +68,7 @@ export default function App() {
     setSelectedCollege(collegeName);
     setActivePage('participants');
     setParticipantsTab('all');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Fetch Data Function
@@ -85,7 +87,7 @@ export default function App() {
         setNormalizedData(normalized.normalizedData);
 
         if (showToast) {
-          showNotification('Data updated successfully');
+          showNotification('Registration records synced with Google Sheets');
         }
       }
     } catch (err) {
@@ -138,6 +140,8 @@ export default function App() {
       setToastMessage(null);
     }, 4000);
   };
+
+  const pendingCount = useMemo(() => normalizedData.filter(d => !d.isVerified).length, [normalizedData]);
 
   const collegesList = useMemo(() => {
     const set = new Set(normalizedData.map(d => d.college).filter(Boolean));
@@ -217,7 +221,32 @@ export default function App() {
 
   const handleExportCSV = (exportArray, filename = 'cse_viyugam_export.csv') => {
     if (!exportArray || exportArray.length === 0) return;
-    const csvStr = Papa.unparse(exportArray);
+
+    const dataToExport = exportArray.map(item => {
+      if (item && typeof item === 'object' && item.name && item.college) {
+        return {
+          'Participant ID': item.id,
+          'Row #': item.displayRowIndex || item.rowIndex,
+          'Participant Name': item.name,
+          'Role': item.teamRole || (item.isTeamMember ? 'Team Member' : (item.teamName ? 'Team Lead' : 'Individual')),
+          'Team Name': item.teamName || 'N/A',
+          'Team Lead': item.isTeamMember ? (item.leadName || 'N/A') : (item.name || 'N/A'),
+          'College / Institution': item.college,
+          'Department': item.department,
+          'Year of Study': item.year,
+          'Registered Events': Array.isArray(item.events) ? item.events.join(', ') : (item.events || ''),
+          'Verification Status': item.isVerified ? 'Verified' : 'New / Pending',
+          'Transaction ID': item.transactionId || 'N/A',
+          'Payment Proof Link': item.paymentScreenshot || '',
+          'Email': item.email || '',
+          'Phone': item.phone || '',
+          'Date & Time Registered': item.timestamp || '',
+        };
+      }
+      return item;
+    });
+
+    const csvStr = Papa.unparse(dataToExport);
     const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -229,7 +258,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col font-sans">
+    <div className="min-h-screen bg-mesh-pattern flex flex-col font-sans selection:bg-burgundy-100 selection:text-burgundy-900">
       
       <Header
         lastUpdated={lastUpdated}
@@ -241,8 +270,8 @@ export default function App() {
       />
 
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-neutral-900 text-white text-xs font-semibold px-4 py-3 rounded-lg shadow-xl flex items-center space-x-2 border border-neutral-700 animate-bounce">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-modal flex items-center space-x-2.5 border border-slate-700 animate-slide-up">
+          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -254,9 +283,11 @@ export default function App() {
           onSelectPage={(page) => handleNavigate(page)}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
+          pendingCount={pendingCount}
+          totalCount={normalizedData.length}
         />
 
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 pb-12">
           
           {activePage !== 'sheet' && (
             <FilterPanel
@@ -285,30 +316,32 @@ export default function App() {
           )}
 
           {isLoading && (
-            <div className="bg-white rounded-xl border border-neutral-200 p-12 text-center shadow-xs">
-              <RefreshCw className="h-10 w-10 text-burgundy-800 animate-spin mx-auto mb-4" />
-              <h2 className="text-base font-bold text-neutral-900 font-outfit">
-                CSE VIYUGAM — Loading registration analytics...
+            <div className="card-elevated rounded-3xl p-16 text-center">
+              <div className="h-14 w-14 rounded-2xl bg-burgundy-50 border border-burgundy-100 flex items-center justify-center mx-auto mb-4 text-burgundy-800 shadow-sm">
+                <RefreshCw className="h-7 w-7 animate-spin" />
+              </div>
+              <h2 className="text-lg font-extrabold text-slate-900 font-outfit">
+                CSE VIYUGAM 2026 — Connecting to Google Sheets...
               </h2>
-              <p className="text-xs text-neutral-500 max-w-sm mx-auto mt-1">
-                Connecting to Google Sheet, parsing row range, and executing real-time data normalizer...
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 font-medium">
+                Fetching latest attendee submissions, verifying receipts, and building live analytics dashboard...
               </p>
             </div>
           )}
 
           {!isLoading && error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-950 mb-6 flex items-start space-x-3">
-              <AlertCircle className="h-6 w-6 text-red-600 shrink-0 mt-0.5" />
+            <div className="card-elevated rounded-3xl p-6 bg-rose-50/90 border-rose-200 text-rose-950 mb-6 flex items-start space-x-3.5">
+              <AlertCircle className="h-6 w-6 text-rose-600 shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-bold font-outfit text-red-900">
-                  Spreadsheet Connectivity Error
+                <h3 className="text-sm font-extrabold font-outfit text-rose-950 uppercase tracking-wider">
+                  Spreadsheet Connectivity Notice
                 </h3>
-                <p className="text-xs text-red-800 mt-1">{error}</p>
+                <p className="text-xs text-rose-800 mt-1 font-medium leading-relaxed">{error}</p>
                 <button
                   onClick={() => fetchData(true)}
-                  className="mt-3 px-3 py-1.5 rounded-lg bg-red-800 text-white text-xs font-semibold hover:bg-red-900 transition-colors"
+                  className="mt-3 px-4 py-2 rounded-xl bg-rose-800 hover:bg-rose-900 text-white text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
                 >
-                  Retry Connection
+                  Retry Synchronization
                 </button>
               </div>
             </div>

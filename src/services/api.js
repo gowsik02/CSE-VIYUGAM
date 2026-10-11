@@ -2,7 +2,8 @@ import axios from 'axios';
 import Papa from 'papaparse';
 
 const BACKEND_URL = '/api/registrations';
-const DEFAULT_SPREADSHEET_ID = '1doXrCIk2H2UscjpXf6xEa3PDU6uco9KjzMWiF_vG-xc';
+const DEFAULT_SPREADSHEET_ID = '1T5w7Jk5-M_1SFtyXAF4LwtQoaWjO3Y6XFVeWvOfGAyU';
+const DEFAULT_SHEET_GID = '1175403078';
 
 /**
  * Fetch registrations from Express backend, with automatic direct fetch fallback
@@ -19,10 +20,28 @@ export async function getRegistrations() {
   }
 
   // 2. Direct fallback: Fetch public Google Sheet CSV directly from browser
-  const csvUrl = `https://docs.google.com/spreadsheets/d/${DEFAULT_SPREADSHEET_ID}/export?format=csv`;
+  const csvUrl = DEFAULT_SHEET_GID
+    ? `https://docs.google.com/spreadsheets/d/${DEFAULT_SPREADSHEET_ID}/export?format=csv&gid=${DEFAULT_SHEET_GID}`
+    : `https://docs.google.com/spreadsheets/d/${DEFAULT_SPREADSHEET_ID}/export?format=csv`;
+
   try {
-    const csvResponse = await axios.get(csvUrl, { timeout: 10000 });
-    const parseResult = Papa.parse(csvResponse.data, {
+    let csvData;
+    try {
+      const csvResponse = await axios.get(csvUrl, { timeout: 10000 });
+      csvData = csvResponse.data;
+    } catch (exportErr) {
+      const gvizUrl = DEFAULT_SHEET_GID
+        ? `https://docs.google.com/spreadsheets/d/${DEFAULT_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${DEFAULT_SHEET_GID}`
+        : `https://docs.google.com/spreadsheets/d/${DEFAULT_SPREADSHEET_ID}/gviz/tq?tqx=out:csv`;
+      const gvizRes = await axios.get(gvizUrl, { timeout: 10000 });
+      csvData = gvizRes.data;
+    }
+
+    if (typeof csvData === 'string' && csvData.includes('<!DOCTYPE html>')) {
+      throw new Error('Google Sheet is restricted. Please enable "Anyone with the link can view" in Google Sheets Share settings.');
+    }
+
+    const parseResult = Papa.parse(csvData, {
       header: false,
       skipEmptyLines: true,
     });
@@ -59,6 +78,6 @@ export async function getRegistrations() {
       data,
     };
   } catch (directError) {
-    throw new Error(`Unable to fetch spreadsheet data. Please check the Google Sheets connection. (${directError.message})`);
+    throw new Error(`Unable to fetch spreadsheet data. Please check the Google Sheets connection or verify sharing permissions. (${directError.message})`);
   }
 }

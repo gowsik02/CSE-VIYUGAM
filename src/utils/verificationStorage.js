@@ -58,8 +58,17 @@ export function getParticipantKeys(participant) {
 
   if (participant.id) keys.push(String(participant.id).trim());
 
+  if (participant.memberKey) keys.push(`member_${participant.memberKey}`);
+  if (participant.parentId) keys.push(`parent_${participant.parentId}`);
+
   const rowIdx = participant.rowIndex || participant.row_index || participant._rowIndex;
-  if (rowIdx) keys.push(`row_${rowIdx}`);
+  if (rowIdx) {
+    if (participant.isSyntheticMember) {
+      keys.push(`row_${rowIdx}_m`);
+    } else {
+      keys.push(`row_${rowIdx}`);
+    }
+  }
 
   if (participant.transactionId) {
     const txn = String(participant.transactionId).trim();

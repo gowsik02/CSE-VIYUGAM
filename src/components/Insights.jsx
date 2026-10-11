@@ -6,11 +6,11 @@ export default function Insights({ data }) {
   const insights = generateInsights(data);
 
   return (
-    <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-xs mb-6">
-      <div className="flex items-center space-x-2 pb-3 border-b border-neutral-100">
-        <Sparkles className="h-5 w-5 text-amber-500" />
-        <h3 className="text-sm font-bold text-neutral-900 font-outfit uppercase tracking-wider">
-          Registration Insights & Key Observations
+    <div className="card-elevated rounded-2xl p-5 mb-6">
+      <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
+        <Sparkles className="h-4 w-4 text-amber-500" />
+        <h3 className="text-xs font-extrabold text-slate-900 font-outfit uppercase tracking-wider">
+          Executive Observations & Insights
         </h3>
       </div>
 
@@ -18,15 +18,15 @@ export default function Insights({ data }) {
         {insights.map((insightText, idx) => (
           <div
             key={idx}
-            className="p-3.5 rounded-lg bg-neutral-50 border border-neutral-200 text-xs leading-relaxed text-neutral-800 flex items-start space-x-2"
+            className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 text-xs leading-relaxed text-slate-700 flex items-start space-x-2.5"
           >
-            <span className="text-burgundy-800 font-bold font-mono text-sm shrink-0">
-              #{idx + 1}
+            <span className="text-burgundy-800 font-extrabold font-mono text-xs shrink-0 mt-0.5">
+              0{idx + 1}.
             </span>
             <div
               className="insight-html"
               dangerouslySetInnerHTML={{
-                __html: insightText.replace(/\*\*(.*?)\*\*/g, '<strong className="font-semibold text-neutral-950">$1</strong>'),
+                __html: insightText.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-950">$1</strong>'),
               }}
             />
           </div>
