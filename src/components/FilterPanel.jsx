@@ -53,8 +53,9 @@ export default function FilterPanel({
       const matchTxn = item.transactionId && item.transactionId.toLowerCase().includes(term);
       const matchEvents = Array.isArray(item.events) && item.events.some(e => e.toLowerCase().includes(term));
       const matchDept = item.department && item.department.toLowerCase().includes(term);
+      const matchTeam = item.teamName && item.teamName.toLowerCase().includes(term);
 
-      return matchName || matchCollege || matchId || matchEmail || matchPhone || matchTxn || matchEvents || matchDept;
+      return matchName || matchCollege || matchId || matchEmail || matchPhone || matchTxn || matchEvents || matchDept || matchTeam;
     }).slice(0, 8);
   }, [searchTerm, allParticipants]);
 

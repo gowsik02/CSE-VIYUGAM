@@ -3,7 +3,8 @@
  * Calculates dynamic statistics over filtered datasets
  */
 
-import { formatCurrency } from './formatters';
+import { formatCurrency } from './formatters.js';
+import { normalizeTeamKey, formatTeamDisplayName } from './dataNormalizer.js';
 
 export function calculateSummaryMetrics(data = [], hasGenderColumn = false) {
   const totalParticipants = data.length;
@@ -394,16 +395,18 @@ export function calculateTeamsSummary(data = []) {
 
   data.forEach(p => {
     const rawTeamName = p.teamName ? String(p.teamName).trim() : '';
-    if (!rawTeamName) {
+    const tKey = p.teamKey || normalizeTeamKey(rawTeamName);
+    if (!tKey) {
       soloCount++;
       return;
     }
 
     teamParticipantsCount++;
-    const tKey = rawTeamName.toLowerCase();
+    const displayName = p.teamName || formatTeamDisplayName(rawTeamName);
+
     if (!teamsMap[tKey]) {
       teamsMap[tKey] = {
-        name: rawTeamName,
+        name: displayName,
         key: tKey,
         college: p.college || 'Unspecified Institution',
         department: p.department || 'N/A',
@@ -417,6 +420,12 @@ export function calculateTeamsSummary(data = []) {
         allVerified: true,
         anyVerified: false,
       };
+    } else {
+      // If the current team name is all lowercase but a new member has proper casing, upgrade display name
+      const currentName = teamsMap[tKey].name;
+      if (currentName === currentName.toLowerCase() && displayName !== displayName.toLowerCase()) {
+        teamsMap[tKey].name = displayName;
+      }
     }
 
     if (Array.isArray(p.events)) {
@@ -437,6 +446,7 @@ export function calculateTeamsSummary(data = []) {
       teamsMap[tKey].allVerified = false;
     }
 
+    // Assign team lead: prefer member flagged with isLead, else leadName match, else first non-team-member
     if (p.isLead || (!teamsMap[tKey].lead && !p.isTeamMember)) {
       teamsMap[tKey].lead = p;
       teamsMap[tKey].leadName = p.name;
