@@ -502,8 +502,9 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
       } else if (isMemberExplicitlyUnverified) {
         memberVerified = false;
       } else {
-        // Inherits verification status from the primary registration
-        memberVerified = primary.isVerified;
+        // In team separation, verify each team member individually.
+        // Team members do NOT automatically inherit verified status from the primary lead.
+        memberVerified = false;
       }
 
       const memberParticipant = {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   X,
   User,
@@ -15,11 +15,20 @@ import {
   Users,
   Image as ImageIcon,
   Check,
+  CheckCircle2,
+  Crown,
   DollarSign,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { normalizeTeamKey } from '../utils/dataNormalizer';
 
-export default function ParticipantDetailModal({ participant, onClose, onToggleVerify }) {
+export default function ParticipantDetailModal({
+  participant,
+  allParticipants = [],
+  onSelectParticipant,
+  onClose,
+  onToggleVerify,
+}) {
   if (!participant) return null;
 
   const initials = participant.name
@@ -31,6 +40,16 @@ export default function ParticipantDetailModal({ participant, onClose, onToggleV
         .join('')
         .toUpperCase()
     : 'P';
+
+  const teamRoster = useMemo(() => {
+    if (!participant) return [];
+    const tKey = participant.teamKey || normalizeTeamKey(participant.teamName);
+    if (!tKey) return [];
+    return (allParticipants || []).filter(p => {
+      const pKey = p.teamKey || normalizeTeamKey(p.teamName);
+      return pKey && pKey === tKey;
+    });
+  }, [participant, allParticipants]);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4">
@@ -209,7 +228,91 @@ export default function ParticipantDetailModal({ participant, onClose, onToggleV
                     )}
                   </div>
                 )}
-                {participant.teamMembers && participant.teamMembers.length > 0 && (
+                {teamRoster.length > 0 ? (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-slate-500 font-medium block text-[11px]">Squad Roster ({teamRoster.length} members):</span>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-0.5">
+                      {teamRoster.map((member) => {
+                        const isCurrent = member.id === participant.id;
+                        return (
+                          <div
+                            key={member.id}
+                            onClick={() => !isCurrent && onSelectParticipant && onSelectParticipant(member)}
+                            className={`p-2 rounded-xl border flex items-center justify-between gap-2 transition-all ${
+                              isCurrent
+                                ? 'bg-purple-50/70 border-purple-200 ring-1 ring-purple-300'
+                                : 'bg-white hover:bg-slate-100 border-slate-200 cursor-pointer'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-2 min-w-0">
+                              <div className={`h-6 w-6 rounded-lg text-[10px] font-bold flex items-center justify-center shrink-0 ${
+                                member.isLead
+                                  ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                                  : 'bg-blue-100 text-blue-900 border border-blue-200'
+                              }`}>
+                                {member.name ? member.name[0].toUpperCase() : 'M'}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-slate-900 text-xs truncate">
+                                    {member.name}
+                                  </span>
+                                  {isCurrent && (
+                                    <span className="text-[9px] font-extrabold text-purple-700 bg-purple-100/80 px-1 rounded">
+                                      Current
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-mono block">
+                                  {member.id}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center space-x-1.5 shrink-0">
+                              {member.isLead ? (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-purple-100 text-purple-900 border border-purple-200 flex items-center gap-1">
+                                  <Crown className="h-2.5 w-2.5 text-purple-700" />
+                                  <span>Lead</span>
+                                </span>
+                              ) : (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-blue-100 text-blue-900 border border-blue-200">
+                                  Member
+                                </span>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleVerify && onToggleVerify(member);
+                                }}
+                                className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
+                                  member.isVerified
+                                    ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300'
+                                    : 'bg-amber-500 hover:bg-amber-600 text-white shadow-2xs'
+                                }`}
+                                title={member.isVerified ? `Click to unverify ${member.name}` : `Click to verify ${member.name}`}
+                              >
+                                {member.isVerified ? (
+                                  <>
+                                    <CheckCircle2 className="h-3 w-3 text-emerald-700" />
+                                    <span>Verified</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="h-3 w-3 text-white" />
+                                    <span>Verify</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : participant.teamMembers && participant.teamMembers.length > 0 ? (
                   <div>
                     <span className="text-slate-500 font-medium block mb-1">Team Members:</span>
                     <div className="flex flex-wrap gap-1">
@@ -220,7 +323,7 @@ export default function ParticipantDetailModal({ participant, onClose, onToggleV
                       ))}
                     </div>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           )}

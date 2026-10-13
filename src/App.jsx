@@ -128,8 +128,8 @@ export default function App() {
     const reNormalized = normalizeRegistrationData(rawRows, rawHeaders, updatedState);
     setNormalizedData(reNormalized.normalizedData);
 
-    if (selectedParticipant && selectedParticipant.id === targetParticipant.id) {
-      const updatedModalPart = reNormalized.normalizedData.find(d => d.id === targetParticipant.id);
+    if (selectedParticipant) {
+      const updatedModalPart = reNormalized.normalizedData.find(d => d.id === selectedParticipant.id);
       if (updatedModalPart) {
         setSelectedParticipant(updatedModalPart);
       }
@@ -148,6 +148,13 @@ export default function App() {
 
     const reNormalized = normalizeRegistrationData(rawRows, rawHeaders, updatedState);
     setNormalizedData(reNormalized.normalizedData);
+
+    if (selectedParticipant) {
+      const updatedModalPart = reNormalized.normalizedData.find(d => d.id === selectedParticipant.id);
+      if (updatedModalPart) {
+        setSelectedParticipant(updatedModalPart);
+      }
+    }
 
     showNotification(
       shouldVerify
@@ -452,6 +459,8 @@ export default function App() {
       {selectedParticipant && (
         <ParticipantDetailModal
           participant={selectedParticipant}
+          allParticipants={normalizedData}
+          onSelectParticipant={setSelectedParticipant}
           onClose={() => setSelectedParticipant(null)}
           onToggleVerify={handleToggleVerify}
         />
