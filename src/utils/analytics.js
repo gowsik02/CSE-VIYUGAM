@@ -226,6 +226,9 @@ export function calculateEventDetailedBreakdown(data = []) {
             email: item.email || '',
             isVerified: item.isVerified || false,
             timestamp: item.timestamp || '',
+            teamName: item.teamName || '',
+            teamRole: item.teamRole || '',
+            isTeamMember: item.isTeamMember || false,
           });
         }
       });
