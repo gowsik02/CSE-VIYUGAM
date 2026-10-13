@@ -4,6 +4,7 @@ import {
   Award,
   Users,
   Download,
+  FileText,
   Sparkles,
   Search,
   ChevronRight,
@@ -16,6 +17,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { calculateEventParticipation, calculateEventDetailedBreakdown } from '../utils/analytics';
 import { formatDate } from '../utils/formatters';
+import { exportSingleEventPDF, exportAllEventsPDF } from '../utils/pdfExport';
 
 export default function Events({ data, onExportCSV, onSelectParticipant, onToggleVerify }) {
   const [selectedEventFilter, setSelectedEventFilter] = useState('ALL');
@@ -50,42 +52,12 @@ export default function Events({ data, onExportCSV, onSelectParticipant, onToggl
     return list;
   }, [eventDetailedBreakdown, selectedEventFilter, searchQuery]);
 
-  const handleExportSingleEventCSV = (eventObj) => {
-    const csvData = eventObj.participants.map((p, idx) => ({
-      'S.No': idx + 1,
-      'Event Name': eventObj.eventName,
-      'Participant Name': p.name,
-      'College Name': p.college,
-      'Department': p.department,
-      'Academic Year': p.year,
-      'Verification Status': p.isVerified ? 'Verified' : 'New / Pending',
-      'Date & Time Registered': formatDate(p.timestamp),
-      'Phone': p.phone,
-      'Email': p.email,
-    }));
-    const sanitizedName = eventObj.eventName.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    onExportCSV(csvData, `event_report_${sanitizedName}.csv`);
+  const handleExportSingleEventPDF = (eventObj) => {
+    exportSingleEventPDF(eventObj);
   };
 
-  const handleExportAllEventsDetailedCSV = () => {
-    const allRows = [];
-    eventDetailedBreakdown.forEach((evt) => {
-      evt.participants.forEach((p, idx) => {
-        allRows.push({
-          'Event Name': evt.eventName,
-          'S.No': idx + 1,
-          'Participant Name': p.name,
-          'College Name': p.college,
-          'Department': p.department,
-          'Academic Year': p.year,
-          'Verification Status': p.isVerified ? 'Verified' : 'New / Pending',
-          'Date & Time Registered': formatDate(p.timestamp),
-          'Phone': p.phone,
-          'Email': p.email,
-        });
-      });
-    });
-    onExportCSV(allRows, 'cse_viyugam_all_events_detailed_report.csv');
+  const handleExportAllEventsPDF = () => {
+    exportAllEventsPDF(eventDetailedBreakdown);
   };
 
   if (eventStats.length === 0) {
@@ -117,11 +89,11 @@ export default function Events({ data, onExportCSV, onSelectParticipant, onToggl
             </p>
           </div>
           <button
-            onClick={handleExportAllEventsDetailedCSV}
-            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 hover:bg-slate-50 shadow-2xs active:scale-95 transition-all cursor-pointer"
+            onClick={handleExportAllEventsPDF}
+            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 text-xs font-bold text-rose-900 hover:bg-rose-100 shadow-2xs active:scale-95 transition-all cursor-pointer"
           >
-            <Download className="h-4 w-4 text-burgundy-800" />
-            <span>Export All Events CSV</span>
+            <FileText className="h-4 w-4 text-rose-700" />
+            <span>Download All Events PDF</span>
           </button>
         </div>
 
@@ -215,11 +187,11 @@ export default function Events({ data, onExportCSV, onSelectParticipant, onToggl
                 </div>
 
                 <button
-                  onClick={() => handleExportSingleEventCSV(evt)}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs cursor-pointer"
+                  onClick={() => handleExportSingleEventPDF(evt)}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 text-xs font-bold text-rose-900 hover:bg-rose-100 shadow-2xs cursor-pointer active:scale-95 transition-all"
                 >
-                  <Download className="h-3.5 w-3.5 text-burgundy-800" />
-                  <span>Export Event Roster</span>
+                  <FileText className="h-3.5 w-3.5 text-rose-700" />
+                  <span>Download PDF Report</span>
                 </button>
               </div>
 
@@ -252,9 +224,14 @@ export default function Events({ data, onExportCSV, onSelectParticipant, onToggl
                           <td className="table-body-cell">
                             <div
                               onClick={() => onSelectParticipant && onSelectParticipant(p)}
-                              className="font-bold text-slate-900 hover:text-burgundy-800 cursor-pointer"
+                              className="font-bold text-slate-900 hover:text-burgundy-800 cursor-pointer flex items-center gap-1.5 flex-wrap"
                             >
-                              {p.name}
+                              <span>{p.name}</span>
+                              {p.teamName && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                  {p.teamName}
+                                </span>
+                              )}
                             </div>
                             <div className="text-[10px] text-slate-400 font-mono">{p.id}</div>
                           </td>
