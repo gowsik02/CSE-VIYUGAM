@@ -475,7 +475,8 @@ export function calculateTeamsSummary(data = []) {
   const totalTeams = teamsList.length;
   const avgTeamSize = totalTeams > 0 ? (teamParticipantsCount / totalTeams).toFixed(1) : '0';
   const fullyVerifiedTeams = teamsList.filter(t => t.status === 'Verified').length;
-  const pendingTeams = teamsList.filter(t => t.status !== 'Verified').length;
+  const partialTeams = teamsList.filter(t => t.status === 'Partial').length;
+  const pendingTeams = teamsList.filter(t => t.status === 'Pending').length;
 
   return {
     teamsList,
@@ -484,6 +485,7 @@ export function calculateTeamsSummary(data = []) {
     soloCount,
     avgTeamSize,
     fullyVerifiedTeams,
+    partialTeams,
     pendingTeams,
   };
 }

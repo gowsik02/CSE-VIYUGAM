@@ -42,6 +42,7 @@ export default function Participants({
   const tabFilteredData = useMemo(() => {
     if (activeTab === 'new') return data.filter(d => !d.isVerified);
     if (activeTab === 'verified') return data.filter(d => d.isVerified);
+    if (activeTab === 'teams') return data.filter(d => Boolean(d.teamName));
     return data;
   }, [data, activeTab]);
 
@@ -76,6 +77,7 @@ export default function Participants({
 
   const newCount = useMemo(() => data.filter(d => !d.isVerified).length, [data]);
   const verifiedCount = useMemo(() => data.filter(d => d.isVerified).length, [data]);
+  const teamsCount = useMemo(() => data.filter(d => Boolean(d.teamName)).length, [data]);
 
   return (
     <div className="card-elevated rounded-2xl space-y-0 overflow-hidden">
@@ -132,6 +134,22 @@ export default function Participants({
           <span>Verified Registrations</span>
           <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-900 border border-emerald-200">
             {verifiedCount}
+          </span>
+        </button>
+
+        {/* Teams & Squads Tab */}
+        <button
+          onClick={() => { setActiveTab('teams'); setCurrentPage(1); }}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition-all border-b-2 cursor-pointer ${
+            activeTab === 'teams'
+              ? 'bg-white text-purple-950 border-purple-700 shadow-2xs'
+              : 'text-slate-500 hover:text-slate-900 border-transparent'
+          }`}
+        >
+          <Users className="h-4 w-4 text-purple-700" />
+          <span>Teams & Squads</span>
+          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-900 border border-purple-200">
+            {teamsCount}
           </span>
         </button>
 

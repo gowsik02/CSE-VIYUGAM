@@ -72,6 +72,7 @@ export default function Dashboard({
   const filteredTeams = useMemo(() => {
     return teamsStats.teamsList.filter((team) => {
       if (teamStatusFilter === 'verified' && team.status !== 'Verified') return false;
+      if (teamStatusFilter === 'partial' && team.status !== 'Partial') return false;
       if (teamStatusFilter === 'pending' && team.status === 'Verified') return false;
 
       if (teamSearch.trim()) {
@@ -422,6 +423,17 @@ export default function Dashboard({
               >
                 Verified ({teamsStats.fullyVerifiedTeams})
               </button>
+              {teamsStats.partialTeams > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setTeamStatusFilter('partial')}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                    teamStatusFilter === 'partial' ? 'bg-white text-blue-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Partial ({teamsStats.partialTeams})
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setTeamStatusFilter('pending')}
@@ -512,7 +524,7 @@ export default function Dashboard({
                       {team.status === 'Verified' ? (
                         <>
                           <CheckCircle2 className="h-3 w-3 text-emerald-700" />
-                          <span>Verified</span>
+                          <span>All {team.memberCount} Verified</span>
                         </>
                       ) : team.status === 'Partial' ? (
                         <>
@@ -522,7 +534,7 @@ export default function Dashboard({
                       ) : (
                         <>
                           <Clock className="h-3 w-3 text-amber-700" />
-                          <span>Pending Audit</span>
+                          <span>0/{team.memberCount} Verified</span>
                         </>
                       )}
                     </span>
@@ -586,9 +598,32 @@ export default function Dashboard({
                             </span>
                           )}
 
-                          <span className={`h-2 w-2 rounded-full ${
-                            member.isVerified ? 'bg-emerald-500' : 'bg-amber-500'
-                          }`} title={member.isVerified ? 'Verified' : 'Pending'} />
+                          {/* Individual Member Verification Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleVerify && onToggleVerify(member);
+                            }}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
+                              member.isVerified
+                                ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300'
+                                : 'bg-amber-500 hover:bg-amber-600 text-white shadow-2xs'
+                            }`}
+                            title={member.isVerified ? `Click to unverify ${member.name}` : `Click to verify ${member.name}`}
+                          >
+                            {member.isVerified ? (
+                              <>
+                                <CheckCircle2 className="h-3 w-3 text-emerald-700" />
+                                <span>Verified</span>
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="h-3 w-3 text-white" />
+                                <span>Verify</span>
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -634,7 +669,11 @@ export default function Dashboard({
                         : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
                     }`}
                   >
-                    {team.allVerified ? 'Unverify Squad' : 'Verify Squad'}
+                    {team.allVerified
+                      ? 'Unverify Squad'
+                      : team.verifiedCount > 0
+                      ? `Verify Remaining (${team.memberCount - team.verifiedCount})`
+                      : 'Verify Squad'}
                   </button>
                 </div>
               </div>
