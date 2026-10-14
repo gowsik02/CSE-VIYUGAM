@@ -11,8 +11,24 @@ const COLUMN_ALIASES = {
   department: ['department', 'dept', 'branch', 'stream'],
   year: ['year of study', 'year', 'study year', 'grade'],
   amount: ['registration fee', 'amount', 'payment amount', 'fee', 'paid amount'],
-  paymentStatus: ['payment status', 'status', 'payment', 'paid status', 'transaction status'],
-  verificationStatus: ['verification status', 'verified status', 'verification', 'verified', 'admin verification', 'approval status', 'approval', 'admin status'],
+  paymentStatus: ['payment status', 'paid status', 'transaction status', 'status'],
+  verificationStatus: [
+    'verification status',
+    'verified status',
+    'verification slide',
+    'verification side',
+    'verification',
+    'verified',
+    'admin verification',
+    'approval status',
+    'approval',
+    'admin status',
+    'is verified',
+    'verify',
+    'verified / non verified',
+    'verified/not verified',
+    'verified/non-verified',
+  ],
   transactionId: ['transaction id', 'txn id', 'upi transaction id', 'utr', 'payment id'],
   timestamp: ['timestamp', 'registration date', 'date', 'time'],
   techEvents: ['select technical events', 'select the technical events', 'technical events', 'technical event'],
@@ -193,13 +209,31 @@ export function detectColumnMapping(headers = []) {
   const mapping = {};
   const lowerHeaders = headers.map(h => String(h || '').trim().toLowerCase());
 
+  // Pass 1: Look for exact header matches
   Object.entries(COLUMN_ALIASES).forEach(([fieldKey, aliases]) => {
-    let foundIndex = lowerHeaders.findIndex(h => aliases.includes(h));
-    if (foundIndex === -1) {
-      foundIndex = lowerHeaders.findIndex(h => aliases.some(alias => h.includes(alias)));
-    }
+    const foundIndex = lowerHeaders.findIndex(h => aliases.includes(h));
     if (foundIndex !== -1) {
       mapping[fieldKey] = headers[foundIndex];
+    }
+  });
+
+  // Pass 2: Fallback to substring matches for unmapped keys (preventing false matches)
+  Object.entries(COLUMN_ALIASES).forEach(([fieldKey, aliases]) => {
+    if (!mapping[fieldKey]) {
+      const foundIndex = lowerHeaders.findIndex(h => {
+        // Prevent paymentStatus from matching screenshot or proof columns
+        if (fieldKey === 'paymentStatus' && (h.includes('screenshot') || h.includes('proof') || h.includes('receipt') || h.includes('upload'))) {
+          return false;
+        }
+        // Prevent teamName from matching team member columns
+        if (fieldKey === 'teamName' && (h.includes('member') || h.includes('teammate') || h.includes('size'))) {
+          return false;
+        }
+        return aliases.some(alias => h.includes(alias));
+      });
+      if (foundIndex !== -1) {
+        mapping[fieldKey] = headers[foundIndex];
+      }
     }
   });
 
@@ -348,20 +382,37 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
     const isExplicitlyVerified = candidateKeys.some(k => verifiedKeys.has(k));
     const isExplicitlyUnverified = candidateKeys.some(k => unverifiedKeys.has(k));
 
+    // Check sheet's explicit verification column (the 'verification slide')
+    const rawVerifVal = mapping.verificationStatus ? String(row[mapping.verificationStatus] || '').trim().toLowerCase() : '';
+    const isSheetYes = ['yes', 'y', 'verified', 'approved', 'true', 'ok', '1'].includes(rawVerifVal);
+    const isSheetNo = ['no', 'n', 'unverified', 'non verified', 'not verified', 'false', '0', 'pending'].includes(rawVerifVal);
+
     // CRITICAL REQUIREMENT:
-    // Once verified by organizer, it MUST stay verified permanently!
-    // New incoming rows default to unverified unless explicit sheet column says verified.
+    // When organizer enters 'yes' or 'no' in the Excel verification slide:
+    // That is the authoritative state from Google Sheets / Excel!
     let isVerified = false;
-    if (isExplicitlyVerified) {
+    let verificationSource = 'default';
+
+    if (isSheetYes) {
       isVerified = true;
+      verificationSource = 'excel_yes';
+    } else if (isSheetNo) {
+      isVerified = false;
+      verificationSource = 'excel_no';
+    } else if (isExplicitlyVerified) {
+      isVerified = true;
+      verificationSource = 'manual_verified';
     } else if (isExplicitlyUnverified) {
       isVerified = false;
+      verificationSource = 'manual_unverified';
     } else {
-      const explicitSheetStatus = String(rawVerifStatus || rawStatus).toLowerCase();
+      const explicitSheetStatus = String(rawStatus || '').trim().toLowerCase();
       if (['verified', 'approved', 'yes', 'true'].includes(explicitSheetStatus)) {
         isVerified = true;
+        verificationSource = 'sheet_status';
       } else {
         isVerified = false;
+        verificationSource = 'pending';
       }
     }
 
@@ -385,6 +436,9 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
       teamMembers,
       amount,
       isVerified,
+      verificationSource,
+      excelVerification: isVerified ? 'YES' : 'NO',
+      excelVerificationRaw: rawVerifVal,
       paymentStatus,
       transactionId,
       paymentScreenshot,
@@ -497,14 +551,18 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
       const isMemberExplicitlyUnverified = memberCandidateKeys.some(k => unverifiedKeys.has(k));
 
       let memberVerified = false;
+      let memberVerifSource = 'inherited';
+
       if (isMemberExplicitlyVerified) {
         memberVerified = true;
+        memberVerifSource = 'manual_verified';
       } else if (isMemberExplicitlyUnverified) {
         memberVerified = false;
+        memberVerifSource = 'manual_unverified';
       } else {
-        // In team separation, verify each team member individually.
-        // Team members do NOT automatically inherit verified status from the primary lead.
-        memberVerified = false;
+        // Team members inherit the verification status of their submission from the Excel verification slide
+        memberVerified = primary.isVerified;
+        memberVerifSource = primary.verificationSource || 'excel_inherited';
       }
 
       const memberParticipant = {
@@ -523,6 +581,9 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
         teamMembers: primary.teamMembers,
         amount: primary.amount,
         isVerified: memberVerified,
+        verificationSource: memberVerifSource,
+        excelVerification: memberVerified ? 'YES' : 'NO',
+        excelVerificationRaw: primary.excelVerificationRaw || (memberVerified ? 'yes' : 'no'),
         paymentStatus: memberVerified ? 'Verified' : 'Pending Verification',
         transactionId: primary.transactionId,
         paymentScreenshot: primary.paymentScreenshot,

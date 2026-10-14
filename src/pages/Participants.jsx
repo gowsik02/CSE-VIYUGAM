@@ -17,8 +17,11 @@ import {
   ExternalLink,
   Users,
   Award,
+  FileCheck2,
+  FileX2,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { exportVerifiedReportPDF, exportNonVerifiedReportPDF } from '../utils/pdfExport';
 
 export default function Participants({
   data,
@@ -83,45 +86,53 @@ export default function Participants({
     <div className="card-elevated rounded-2xl space-y-0 overflow-hidden">
       
       {/* Header Bar */}
-      <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white">
+      <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white">
         <div>
           <h2 className="text-base font-extrabold text-slate-900 font-outfit uppercase tracking-wider flex items-center gap-2">
-            <UserCheck className="h-5 w-5 text-burgundy-800" /> Participant Directory & Verification
+            <UserCheck className="h-5 w-5 text-burgundy-800" /> Participant Directory & Verification Roster
           </h2>
           <p className="text-xs text-slate-500 mt-0.5 font-medium">
-            Manage registrations, verify incoming payment proofs, and export attendee rosters
+            Manage registrations according to Excel verification slide. Download official Verified and Non-Verified PDF reports.
           </p>
         </div>
 
-        <button
-          onClick={() => onExportCSV(tabFilteredData, `cse_viyugam_${activeTab}_registrations.csv`)}
-          className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
-        >
-          <Download className="h-4 w-4 text-burgundy-800" />
-          <span>Export Filtered CSV ({tabFilteredData.length})</span>
-        </button>
+        {/* Action Buttons: Verified PDF, Non-Verified PDF, and CSV */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Download Verified PDF */}
+          <button
+            onClick={() => exportVerifiedReportPDF(data)}
+            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-xs font-bold text-emerald-900 hover:bg-emerald-100 transition-all shadow-2xs active:scale-95 cursor-pointer"
+            title="Download official PDF report for Verified attendees (YES in Excel)"
+          >
+            <FileCheck2 className="h-4 w-4 text-emerald-700" />
+            <span>Verified PDF ({verifiedCount})</span>
+          </button>
+
+          {/* Download Non-Verified PDF */}
+          <button
+            onClick={() => exportNonVerifiedReportPDF(data)}
+            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-rose-300 bg-rose-50 text-xs font-bold text-rose-900 hover:bg-rose-100 transition-all shadow-2xs active:scale-95 cursor-pointer"
+            title="Download audit PDF report for Non-Verified attendees (NO in Excel)"
+          >
+            <FileX2 className="h-4 w-4 text-rose-700" />
+            <span>Non-Verified PDF ({newCount})</span>
+          </button>
+
+          {/* Export Filtered CSV */}
+          <button
+            onClick={() => onExportCSV(tabFilteredData, `cse_viyugam_${activeTab}_registrations.csv`)}
+            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-2xs active:scale-95 cursor-pointer"
+          >
+            <Download className="h-4 w-4 text-burgundy-800" />
+            <span>Export CSV ({tabFilteredData.length})</span>
+          </button>
+        </div>
       </div>
 
       {/* Modern Pill Section Tabs */}
       <div className="px-4 sm:px-5 pt-3 bg-slate-50/80 border-b border-slate-200/90 flex items-center space-x-2 overflow-x-auto">
         
-        {/* New Registrations Tab */}
-        <button
-          onClick={() => { setActiveTab('new'); setCurrentPage(1); }}
-          className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition-all border-b-2 cursor-pointer ${
-            activeTab === 'new'
-              ? 'bg-white text-amber-950 border-amber-600 shadow-2xs'
-              : 'text-slate-500 hover:text-slate-900 border-transparent'
-          }`}
-        >
-          <Clock className="h-4 w-4 text-amber-600" />
-          <span>New Submissions</span>
-          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-900 border border-amber-200">
-            {newCount}
-          </span>
-        </button>
-
-        {/* Verified Registrations Tab */}
+        {/* Verified Registrations Tab (YES in Excel) */}
         <button
           onClick={() => { setActiveTab('verified'); setCurrentPage(1); }}
           className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition-all border-b-2 cursor-pointer ${
@@ -131,9 +142,25 @@ export default function Participants({
           }`}
         >
           <CheckCircle className="h-4 w-4 text-emerald-600" />
-          <span>Verified Registrations</span>
-          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-900 border border-emerald-200">
+          <span>Verified Names (YES)</span>
+          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-900 border border-emerald-200 font-mono">
             {verifiedCount}
+          </span>
+        </button>
+
+        {/* Non-Verified Submissions Tab (NO in Excel) */}
+        <button
+          onClick={() => { setActiveTab('new'); setCurrentPage(1); }}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition-all border-b-2 cursor-pointer ${
+            activeTab === 'new'
+              ? 'bg-white text-rose-950 border-rose-600 shadow-2xs'
+              : 'text-slate-500 hover:text-slate-900 border-transparent'
+          }`}
+        >
+          <Clock className="h-4 w-4 text-rose-600" />
+          <span>Non-Verified Names (NO)</span>
+          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-rose-100 text-rose-900 border border-rose-200 font-mono">
+            {newCount}
           </span>
         </button>
 
@@ -148,7 +175,7 @@ export default function Participants({
         >
           <Users className="h-4 w-4 text-purple-700" />
           <span>Teams & Squads</span>
-          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-900 border border-purple-200">
+          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-900 border border-purple-200 font-mono">
             {teamsCount}
           </span>
         </button>
@@ -163,8 +190,8 @@ export default function Participants({
           }`}
         >
           <Users className="h-4 w-4 text-burgundy-800" />
-          <span>All Registrations</span>
-          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-800">
+          <span>All Names</span>
+          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-800 font-mono">
             {data.length}
           </span>
         </button>
@@ -363,11 +390,19 @@ export default function Participants({
 
                   {/* Status Pill */}
                   <td className="table-body-cell">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                      item.isVerified ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      item.isVerified
+                        ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                        : 'bg-rose-100 text-rose-900 border border-rose-200'
                     }`}>
-                      {item.isVerified ? 'Verified' : 'Pending'}
+                      <span className={`h-1.5 w-1.5 rounded-full ${item.isVerified ? 'bg-emerald-600' : 'bg-rose-600'}`} />
+                      <span>{item.isVerified ? 'Verified (YES)' : 'Non-Verified (NO)'}</span>
                     </span>
+                    {item.excelVerification && (
+                      <div className="text-[9px] text-slate-400 font-mono mt-0.5">
+                        Excel: {item.excelVerification}
+                      </div>
+                    )}
                   </td>
 
                   {/* Actions */}

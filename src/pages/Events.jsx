@@ -242,10 +242,13 @@ export default function Events({ data, onExportCSV, onSelectParticipant, onToggl
                             {p.department} ({p.year})
                           </td>
                           <td className="table-body-cell">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              p.isVerified ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                              p.isVerified
+                                ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                                : 'bg-rose-100 text-rose-900 border border-rose-200'
                             }`}>
-                              {p.isVerified ? 'Verified' : 'Pending'}
+                              <span className={`h-1.5 w-1.5 rounded-full ${p.isVerified ? 'bg-emerald-600' : 'bg-rose-600'}`} />
+                              <span>{p.isVerified ? 'Verified (YES)' : 'Non-Verified (NO)'}</span>
                             </span>
                           </td>
                           <td className="table-body-cell text-slate-500 font-mono text-[11px]">
