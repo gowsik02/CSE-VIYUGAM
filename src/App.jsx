@@ -117,9 +117,16 @@ export default function App() {
   }, [fetchData]);
 
   // Persistent Toggle Verification Handler
+  // Persistent Toggle Verification Handler (Permanent: once verified, cannot go back to unverified)
   const handleToggleVerify = (participantOrId) => {
     let targetParticipant = typeof participantOrId === 'object' ? participantOrId : normalizedData.find(d => d.id === participantOrId);
     if (!targetParticipant) return;
+
+    // CRITICAL USER REQUIREMENT: Once verified, cannot go back to unverified
+    if (targetParticipant.isVerified) {
+      showNotification(`${targetParticipant.name} is already Verified (Permanent status)`);
+      return;
+    }
 
     const updatedState = toggleVerificationStatus(targetParticipant);
     setVerificationState(updatedState);
@@ -135,15 +142,25 @@ export default function App() {
       }
     }
 
-    const isNowVerified = reNormalized.normalizedData.find(d => d.id === targetParticipant.id)?.isVerified;
-    showNotification(isNowVerified ? `Verified: ${targetParticipant.name}` : `Moved to Pending: ${targetParticipant.name}`);
+    showNotification(`Verified: ${targetParticipant.name}`);
   };
 
   // Batch Verification Handler for Squads or Multiple Participants
   const handleBatchVerify = (participants = [], shouldVerify = true) => {
     if (!participants || participants.length === 0) return;
 
-    const updatedState = setBatchParticipantsVerification(participants, shouldVerify);
+    if (!shouldVerify) {
+      showNotification('Verified participants cannot be reverted to unverified');
+      return;
+    }
+
+    const unverifiedList = participants.filter(p => !p.isVerified);
+    if (unverifiedList.length === 0) {
+      showNotification('All squad members are already verified');
+      return;
+    }
+
+    const updatedState = setBatchParticipantsVerification(unverifiedList, true);
     setVerificationState(updatedState);
 
     const reNormalized = normalizeRegistrationData(rawRows, rawHeaders, updatedState);
@@ -157,9 +174,7 @@ export default function App() {
     }
 
     showNotification(
-      shouldVerify
-        ? `Squad verified: ${participants.length} member${participants.length > 1 ? 's' : ''}`
-        : `Squad unverified: ${participants.length} member${participants.length > 1 ? 's' : ''}`
+      `Squad verified: ${unverifiedList.length} member${unverifiedList.length > 1 ? 's' : ''}`
     );
   };
 

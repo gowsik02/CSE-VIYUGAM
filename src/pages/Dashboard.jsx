@@ -130,16 +130,13 @@ export default function Dashboard({
 
   const handleVerifySquad = (team) => {
     if (!team || !team.members || team.members.length === 0) return;
-    const shouldVerify = !team.allVerified;
+    const unverifiedMembers = team.members.filter((m) => !m.isVerified);
+    if (unverifiedMembers.length === 0) return;
 
     if (onBatchVerify) {
-      onBatchVerify(team.members, shouldVerify);
+      onBatchVerify(unverifiedMembers, true);
     } else if (onToggleVerify) {
-      team.members.forEach((m) => {
-        if (shouldVerify ? !m.isVerified : m.isVerified) {
-          onToggleVerify(m);
-        }
-      });
+      unverifiedMembers.forEach((m) => onToggleVerify(m));
     }
   };
 
@@ -614,17 +611,23 @@ export default function Dashboard({
 
                     <td className="table-body-cell text-center">
                       <div className="flex items-center justify-center space-x-1.5">
-                        <button
-                          type="button"
-                          onClick={() => onToggleVerify && onToggleVerify(item)}
-                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all active:scale-95 cursor-pointer ${
-                            item.isVerified
-                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                              : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
-                          }`}
-                        >
-                          {item.isVerified ? 'Unverify' : 'Verify'}
-                        </button>
+                        {item.isVerified ? (
+                          <span
+                            className="px-2 py-1 rounded-lg text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 cursor-default select-none inline-flex items-center gap-1"
+                            title="Verified (Permanent — cannot be reverted)"
+                          >
+                            <CheckCircle className="h-3 w-3 text-emerald-600" />
+                            <span>Verified</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onToggleVerify && onToggleVerify(item)}
+                            className="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                          >
+                            Verify
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => onSelectParticipant && onSelectParticipant(item)}
@@ -963,21 +966,20 @@ export default function Dashboard({
                     <ArrowRight className="h-3 w-3 text-slate-400" />
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleVerifySquad(team)}
-                    className={`py-1.5 px-3 rounded-xl font-bold text-xs transition-all active:scale-95 cursor-pointer ${
-                      team.allVerified
-                        ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
-                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
-                    }`}
-                  >
-                    {team.allVerified
-                      ? 'Unverify Squad'
-                      : team.verifiedCount > 0
-                      ? `Verify Remaining (${team.memberCount - team.verifiedCount})`
-                      : 'Verify Squad'}
-                  </button>
+                  {team.allVerified ? (
+                    <span className="py-1.5 px-3 rounded-xl font-bold text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5 select-none">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                      <span>All Squad Verified</span>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleVerifySquad(team)}
+                      className="py-1.5 px-3 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                    >
+                      Verify Squad ({team.memberCount - team.verifiedCount})
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -1069,17 +1071,23 @@ export default function Dashboard({
 
                   <td className="table-body-cell text-center">
                     <div className="flex items-center justify-center space-x-1.5">
-                      <button
-                        type="button"
-                        onClick={() => onToggleVerify(item)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-                          item.isVerified
-                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
-                        }`}
-                      >
-                        {item.isVerified ? 'Unverify' : 'Verify'}
-                      </button>
+                      {item.isVerified ? (
+                        <span
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 cursor-default select-none"
+                          title="Verified (Permanent)"
+                        >
+                          <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>Verified</span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onToggleVerify(item)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                        >
+                          Verify
+                        </button>
+                      )}
 
                       <button
                         type="button"

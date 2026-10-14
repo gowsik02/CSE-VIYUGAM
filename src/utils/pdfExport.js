@@ -229,6 +229,46 @@ export function exportAllEventsPDF(eventsList = []) {
 }
 
 /**
+ * Sorts participants strictly in TEAM-WISE order:
+ * 1. Teams with named squads come first, sorted alphabetically by team name.
+ * 2. Within each team, Team Lead is listed first, followed by Team Members.
+ * 3. Individual registrations (no team) come after all teams, sorted by college and name.
+ */
+export function sortParticipantsTeamWise(participants = []) {
+  return [...participants].sort((a, b) => {
+    const rawTeamA = (a.teamName || '').trim();
+    const rawTeamB = (b.teamName || '').trim();
+
+    const isIndividualA = !rawTeamA || ['individual', 'none', 'n/a', 'na', '-', 'nil'].includes(rawTeamA.toLowerCase());
+    const isIndividualB = !rawTeamB || ['individual', 'none', 'n/a', 'na', '-', 'nil'].includes(rawTeamB.toLowerCase());
+
+    // Teams / squads come before individual registrations
+    if (!isIndividualA && isIndividualB) return -1;
+    if (isIndividualA && !isIndividualB) return 1;
+
+    // Both are teams: sort by Team Name alphabetically
+    if (!isIndividualA && !isIndividualB) {
+      const cmpTeam = rawTeamA.toLowerCase().localeCompare(rawTeamB.toLowerCase());
+      if (cmpTeam !== 0) return cmpTeam;
+
+      // Inside same squad: Team Lead comes first!
+      const isLeadA = a.isLead || a.teamRole === 'Team Lead';
+      const isLeadB = b.isLead || b.teamRole === 'Team Lead';
+      if (isLeadA && !isLeadB) return -1;
+      if (!isLeadA && isLeadB) return 1;
+
+      // Then by displayRowIndex or name
+      return (a.name || '').localeCompare(b.name || '');
+    }
+
+    // Both are individuals: sort by College then Name
+    const cmpCol = (a.college || '').toLowerCase().localeCompare((b.college || '').toLowerCase());
+    if (cmpCol !== 0) return cmpCol;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+}
+
+/**
  * Draws official verification roster header on PDF
  */
 function drawVerificationHeader(doc, title, count, isVerified, totalAmount) {
@@ -266,7 +306,7 @@ function drawVerificationHeader(doc, title, count, isVerified, totalAmount) {
   doc.text(title, 19, 39);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(71, 85, 105); // Slate-600
   const dateStr = new Date().toLocaleDateString('en-IN', {
     day: '2-digit',
@@ -274,16 +314,18 @@ function drawVerificationHeader(doc, title, count, isVerified, totalAmount) {
     year: 'numeric',
   });
   const amountStr = totalAmount !== undefined ? `   |   Total Fee: Rs. ${totalAmount.toLocaleString('en-IN')}` : '';
-  const statusLabel = isVerified ? 'Classification: YES in Excel Slide' : 'Classification: NO in Excel Slide';
-  doc.text(`Total Attendees: ${count} Participants${amountStr}   |   ${statusLabel}   |   Date: ${dateStr}`, 19, 45);
+  const statusLabel = isVerified ? 'Classification: YES in Excel' : 'Classification: NO in Excel';
+  doc.text(`Total: ${count} Participants${amountStr}   |   ${statusLabel}   |   Order: Team-Wise   |   Date: ${dateStr}`, 19, 45);
 }
 
 /**
  * Exports verified participants (YES in Excel) to a clean, professional PDF
+ * STRICTLY SORTED IN TEAM-WISE ORDER with Team / Squad as a prominent column
  */
 export function exportVerifiedReportPDF(participants = [], options = {}) {
   const verifiedList = participants.filter(p => p.isVerified);
-  const totalAmount = verifiedList.reduce((acc, p) => acc + (p.amount || 250), 0);
+  const sortedList = sortParticipantsTeamWise(verifiedList);
+  const totalAmount = sortedList.reduce((acc, p) => acc + (p.amount || 250), 0);
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -293,19 +335,21 @@ export function exportVerifiedReportPDF(participants = [], options = {}) {
 
   drawVerificationHeader(
     doc,
-    'OFFICIAL VERIFIED ATTENDEES ROSTER (YES IN EXCEL)',
-    verifiedList.length,
+    'OFFICIAL VERIFIED ATTENDEES ROSTER (TEAM-WISE ORDER)',
+    sortedList.length,
     true,
     totalAmount
   );
 
-  const tableRows = verifiedList.map((p, idx) => [
+  const tableRows = sortedList.map((p, idx) => [
     idx + 1,
+    p.teamName && !['individual', 'none', 'n/a', 'nil', '-'].includes(p.teamName.trim().toLowerCase())
+      ? p.teamName.trim().toUpperCase()
+      : 'Individual',
     p.name ? String(p.name).trim() : 'Participant',
     p.teamRole || (p.isTeamMember ? 'Member' : (p.teamName ? 'Lead' : 'Individual')),
     p.college ? String(p.college).trim() : 'Unspecified Institution',
     p.department ? `${p.department} (${p.year || ''})` : 'CSE',
-    p.teamName || 'Individual',
     'YES (Verified)',
   ]);
 
@@ -315,7 +359,7 @@ export function exportVerifiedReportPDF(participants = [], options = {}) {
 
   callAutoTable(doc, {
     startY: 54,
-    head: [['#', 'Participant Name', 'Role', 'College / Institution', 'Dept & Year', 'Team Name', 'Excel Status']],
+    head: [['#', 'Team / Squad', 'Participant Name', 'Role', 'College / Institution', 'Dept & Year', 'Excel Status']],
     body: tableRows,
     theme: 'striped',
     margin: { left: 14, right: 14, bottom: 18 },
@@ -338,26 +382,28 @@ export function exportVerifiedReportPDF(participants = [], options = {}) {
       fillColor: [248, 250, 252],
     },
     columnStyles: {
-      0: { cellWidth: 9, halign: 'center' },
-      1: { cellWidth: 41, fontStyle: 'bold' },
-      2: { cellWidth: 18, halign: 'center' },
-      3: { cellWidth: 50 },
-      4: { cellWidth: 24 },
-      5: { cellWidth: 20 },
-      6: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },
+      0: { cellWidth: 8, halign: 'center' },
+      1: { cellWidth: 32, fontStyle: 'bold' }, // Team / Squad
+      2: { cellWidth: 38, fontStyle: 'bold' }, // Participant Name
+      3: { cellWidth: 16, halign: 'center' },   // Role
+      4: { cellWidth: 48 },                    // College
+      5: { cellWidth: 22 },                    // Dept & Year
+      6: { cellWidth: 18, halign: 'center', fontStyle: 'bold' }, // Excel Status
     },
   });
 
-  addFooterToAllPages(doc, 'Verified Attendees Official Roster');
+  addFooterToAllPages(doc, 'Verified Attendees Official Roster (Team-Wise Order)');
   doc.save('CSE_VIYUGAM_2026_Verified_Participants_Report.pdf');
 }
 
 /**
  * Exports non-verified participants (NO in Excel) to an official audit PDF
+ * STRICTLY SORTED IN TEAM-WISE ORDER with Team / Squad as a prominent column
  */
 export function exportNonVerifiedReportPDF(participants = [], options = {}) {
   const nonVerifiedList = participants.filter(p => !p.isVerified);
-  const totalAmount = nonVerifiedList.reduce((acc, p) => acc + (p.amount || 250), 0);
+  const sortedList = sortParticipantsTeamWise(nonVerifiedList);
+  const totalAmount = sortedList.reduce((acc, p) => acc + (p.amount || 250), 0);
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -367,18 +413,20 @@ export function exportNonVerifiedReportPDF(participants = [], options = {}) {
 
   drawVerificationHeader(
     doc,
-    'NON-VERIFIED SUBMISSIONS AUDIT REPORT (NO IN EXCEL)',
-    nonVerifiedList.length,
+    'NON-VERIFIED AUDIT ROSTER (TEAM-WISE ORDER)',
+    sortedList.length,
     false,
     totalAmount
   );
 
-  const tableRows = nonVerifiedList.map((p, idx) => [
+  const tableRows = sortedList.map((p, idx) => [
     idx + 1,
+    p.teamName && !['individual', 'none', 'n/a', 'nil', '-'].includes(p.teamName.trim().toLowerCase())
+      ? p.teamName.trim().toUpperCase()
+      : 'Individual',
     p.name ? String(p.name).trim() : 'Participant',
     p.college ? String(p.college).trim() : 'Unspecified Institution',
     p.department ? `${p.department} (${p.year || ''})` : 'CSE',
-    p.teamName || 'Individual',
     p.transactionId ? String(p.transactionId).trim() : 'None',
     'NO (Non-Verified)',
   ]);
@@ -389,7 +437,7 @@ export function exportNonVerifiedReportPDF(participants = [], options = {}) {
 
   callAutoTable(doc, {
     startY: 54,
-    head: [['#', 'Participant Name', 'College / Institution', 'Dept & Year', 'Team Name', 'Transaction ID', 'Excel Status']],
+    head: [['#', 'Team / Squad', 'Participant Name', 'College / Institution', 'Dept & Year', 'Transaction ID', 'Excel Status']],
     body: tableRows,
     theme: 'striped',
     margin: { left: 14, right: 14, bottom: 18 },
@@ -412,17 +460,17 @@ export function exportNonVerifiedReportPDF(participants = [], options = {}) {
       fillColor: [248, 250, 252],
     },
     columnStyles: {
-      0: { cellWidth: 9, halign: 'center' },
-      1: { cellWidth: 42, fontStyle: 'bold' },
-      2: { cellWidth: 50 },
-      3: { cellWidth: 24 },
-      4: { cellWidth: 21 },
-      5: { cellWidth: 20 },
-      6: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
+      0: { cellWidth: 8, halign: 'center' },
+      1: { cellWidth: 32, fontStyle: 'bold' }, // Team / Squad
+      2: { cellWidth: 38, fontStyle: 'bold' }, // Participant Name
+      3: { cellWidth: 48 },                    // College
+      4: { cellWidth: 22 },                    // Dept & Year
+      5: { cellWidth: 18, fontStyle: 'bold' }, // Txn ID
+      6: { cellWidth: 16, halign: 'center', fontStyle: 'bold' }, // Excel Status
     },
   });
 
-  addFooterToAllPages(doc, 'Non-Verified Submissions Audit Report');
+  addFooterToAllPages(doc, 'Non-Verified Submissions Audit Report (Team-Wise Order)');
   doc.save('CSE_VIYUGAM_2026_Non_Verified_Participants_Report.pdf');
 }
 
@@ -435,3 +483,4 @@ export function exportVerificationReportPDF(participants = [], type = 'verified'
   }
   return exportVerifiedReportPDF(participants);
 }
+
