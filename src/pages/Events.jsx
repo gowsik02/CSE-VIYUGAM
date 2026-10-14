@@ -255,13 +255,29 @@ export default function Events({ data, onExportCSV, onSelectParticipant, onToggl
                             {formatDate(p.timestamp)}
                           </td>
                           <td className="table-body-cell text-center">
-                            <button
-                              type="button"
-                              onClick={() => onSelectParticipant && onSelectParticipant(p)}
-                              className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer"
-                            >
-                              Details
-                            </button>
+                            <div className="flex items-center justify-center space-x-1.5">
+                              {onToggleVerify && (
+                                <button
+                                  type="button"
+                                  onClick={() => onToggleVerify(p)}
+                                  className={`px-2 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                                    p.isVerified
+                                      ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs'
+                                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                                  }`}
+                                  title={p.isVerified ? `Click to unverify ${p.name}` : `Click to verify ${p.name}`}
+                                >
+                                  {p.isVerified ? 'Unverify' : 'Verify'}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => onSelectParticipant && onSelectParticipant(p)}
+                                className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer"
+                              >
+                                Details
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))

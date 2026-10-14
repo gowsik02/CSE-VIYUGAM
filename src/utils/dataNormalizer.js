@@ -391,21 +391,23 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
     // 1. If marked YES in Excel, they are verified.
     // 2. If organizer specifically verifies THIS participant in the website, they go to verified.
     // 3. Once verified, they never go back to unverified.
+    // 1. Explicit website actions (Verify / Unverify) take precedence
+    // 2. Fallback to Google Sheets / Excel verification slide (yes / no)
     let isVerified = false;
     let verificationSource = 'default';
 
-    if (isSheetYes) {
-      isVerified = true;
-      verificationSource = 'excel_yes';
-    } else if (isExplicitlyVerified) {
+    if (isExplicitlyVerified) {
       isVerified = true;
       verificationSource = 'manual_verified';
-    } else if (isSheetNo) {
-      isVerified = false;
-      verificationSource = 'excel_no';
     } else if (isExplicitlyUnverified) {
       isVerified = false;
       verificationSource = 'manual_unverified';
+    } else if (isSheetYes) {
+      isVerified = true;
+      verificationSource = 'excel_yes';
+    } else if (isSheetNo) {
+      isVerified = false;
+      verificationSource = 'excel_no';
     } else {
       const explicitSheetStatus = String(rawStatus || '').trim().toLowerCase();
       if (['verified', 'approved', 'yes', 'true'].includes(explicitSheetStatus)) {
