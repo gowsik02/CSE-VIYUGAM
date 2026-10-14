@@ -408,24 +408,18 @@ export default function Participants({
                   {/* Actions */}
                   <td className="table-body-cell text-center">
                     <div className="flex items-center justify-center space-x-1.5">
-                      {item.isVerified ? (
-                        <span
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 cursor-default select-none"
-                          title="Verified (Permanent — cannot be reverted to unverified)"
-                        >
-                          <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
-                          <span>Verified</span>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => onToggleVerify(item)}
-                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
-                          title={`Verify ${item.name}`}
-                        >
-                          Verify
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => onToggleVerify(item)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                          item.isVerified
+                            ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                        }`}
+                        title={item.isVerified ? `Click to unverify ${item.name}` : `Click to verify ${item.name}`}
+                      >
+                        {item.isVerified ? 'Unverify' : 'Verify'}
+                      </button>
 
                       <button
                         type="button"

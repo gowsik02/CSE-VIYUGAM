@@ -27,6 +27,7 @@ import {
   FileCheck2,
   FileX2,
   Download,
+  RotateCcw,
 } from 'lucide-react';
 import { exportVerifiedReportPDF, exportNonVerifiedReportPDF } from '../utils/pdfExport';
 import {
@@ -130,13 +131,16 @@ export default function Dashboard({
 
   const handleVerifySquad = (team) => {
     if (!team || !team.members || team.members.length === 0) return;
-    const unverifiedMembers = team.members.filter((m) => !m.isVerified);
-    if (unverifiedMembers.length === 0) return;
+    const shouldVerify = !team.allVerified;
 
     if (onBatchVerify) {
-      onBatchVerify(unverifiedMembers, true);
+      onBatchVerify(team.members, shouldVerify);
     } else if (onToggleVerify) {
-      unverifiedMembers.forEach((m) => onToggleVerify(m));
+      team.members.forEach((m) => {
+        if (shouldVerify ? !m.isVerified : m.isVerified) {
+          onToggleVerify(m);
+        }
+      });
     }
   };
 
@@ -611,23 +615,18 @@ export default function Dashboard({
 
                     <td className="table-body-cell text-center">
                       <div className="flex items-center justify-center space-x-1.5">
-                        {item.isVerified ? (
-                          <span
-                            className="px-2 py-1 rounded-lg text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 cursor-default select-none inline-flex items-center gap-1"
-                            title="Verified (Permanent — cannot be reverted)"
-                          >
-                            <CheckCircle className="h-3 w-3 text-emerald-600" />
-                            <span>Verified</span>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => onToggleVerify && onToggleVerify(item)}
-                            className="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
-                          >
-                            Verify
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => onToggleVerify && onToggleVerify(item)}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all active:scale-95 cursor-pointer ${
+                            item.isVerified
+                              ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs'
+                              : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                          }`}
+                          title={item.isVerified ? `Click to unverify ${item.name}` : `Click to verify ${item.name}`}
+                        >
+                          {item.isVerified ? 'Unverify' : 'Verify'}
+                        </button>
                         <button
                           type="button"
                           onClick={() => onSelectParticipant && onSelectParticipant(item)}
@@ -913,19 +912,19 @@ export default function Dashboard({
                             }}
                             className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
                               member.isVerified
-                                ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300'
-                                : 'bg-amber-500 hover:bg-amber-600 text-white shadow-2xs'
+                                ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs'
+                                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
                             }`}
                             title={member.isVerified ? `Click to unverify ${member.name}` : `Click to verify ${member.name}`}
                           >
                             {member.isVerified ? (
                               <>
-                                <CheckCircle2 className="h-3 w-3 text-emerald-700" />
-                                <span>Verified</span>
+                                <RotateCcw className="h-2.5 w-2.5 text-rose-600" />
+                                <span>Unverify</span>
                               </>
                             ) : (
                               <>
-                                <Clock className="h-3 w-3 text-white" />
+                                <Clock className="h-2.5 w-2.5 text-white" />
                                 <span>Verify</span>
                               </>
                             )}
@@ -966,20 +965,21 @@ export default function Dashboard({
                     <ArrowRight className="h-3 w-3 text-slate-400" />
                   </button>
 
-                  {team.allVerified ? (
-                    <span className="py-1.5 px-3 rounded-xl font-bold text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5 select-none">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                      <span>All Squad Verified</span>
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleVerifySquad(team)}
-                      className="py-1.5 px-3 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
-                    >
-                      Verify Squad ({team.memberCount - team.verifiedCount})
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleVerifySquad(team)}
+                    className={`py-1.5 px-3 rounded-xl font-bold text-xs transition-all active:scale-95 cursor-pointer ${
+                      team.allVerified
+                        ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                    }`}
+                  >
+                    {team.allVerified
+                      ? 'Unverify Squad'
+                      : team.verifiedCount > 0
+                      ? `Verify Remaining (${team.memberCount - team.verifiedCount})`
+                      : 'Verify Squad'}
+                  </button>
                 </div>
               </div>
             ))}
@@ -1071,23 +1071,18 @@ export default function Dashboard({
 
                   <td className="table-body-cell text-center">
                     <div className="flex items-center justify-center space-x-1.5">
-                      {item.isVerified ? (
-                        <span
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 cursor-default select-none"
-                          title="Verified (Permanent)"
-                        >
-                          <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
-                          <span>Verified</span>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => onToggleVerify(item)}
-                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
-                        >
-                          Verify
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => onToggleVerify(item)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                          item.isVerified
+                            ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                        }`}
+                        title={item.isVerified ? `Click to unverify ${item.name}` : `Click to verify ${item.name}`}
+                      >
+                        {item.isVerified ? 'Unverify' : 'Verify'}
+                      </button>
 
                       <button
                         type="button"
