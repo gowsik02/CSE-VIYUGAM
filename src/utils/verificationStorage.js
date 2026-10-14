@@ -132,20 +132,26 @@ export function getParticipantKeys(participant) {
 
 /**
  * Explicitly sets verification status for a single participant and persists to localStorage.
+ * CRITICAL RULE: "ONCE VERIFIED, CANNOT GO BACK TO UNVERIFIED"
+ * Once any attendee is verified, they are permanently locked in verified status.
  */
 export function setParticipantVerification(participant, shouldVerify = true) {
   const { verifiedKeys, unverifiedKeys } = getVerificationState();
   const keys = getParticipantKeys(participant);
 
+  // If attempting to un-verify, check if already verified:
+  if (!shouldVerify) {
+    const isAlreadyVerified = (participant && participant.isVerified) || keys.some(k => verifiedKeys.has(k));
+    if (isAlreadyVerified) {
+      console.warn(`[Verification Lock] Participant "${participant?.name}" is already verified and cannot be reverted.`);
+      return { verifiedKeys, unverifiedKeys };
+    }
+  }
+
   if (shouldVerify) {
     keys.forEach(k => {
       verifiedKeys.add(k);
       unverifiedKeys.delete(k);
-    });
-  } else {
-    keys.forEach(k => {
-      verifiedKeys.delete(k);
-      unverifiedKeys.add(k);
     });
   }
 
@@ -156,23 +162,22 @@ export function setParticipantVerification(participant, shouldVerify = true) {
 /**
  * Batch verification for multiple participants (e.g. Squad / Team / College verification).
  * Executes atomically in a single write operation.
+ * Adheres to rule: once verified, participants cannot be reverted to unverified.
  */
 export function setBatchParticipantsVerification(participants = [], shouldVerify = true) {
   const { verifiedKeys, unverifiedKeys } = getVerificationState();
 
+  if (!shouldVerify) {
+    console.warn('[Verification Lock] Batch un-verification is disabled. Once verified, participants cannot go back to unverified.');
+    return { verifiedKeys, unverifiedKeys };
+  }
+
   participants.forEach(participant => {
     const keys = getParticipantKeys(participant);
-    if (shouldVerify) {
-      keys.forEach(k => {
-        verifiedKeys.add(k);
-        unverifiedKeys.delete(k);
-      });
-    } else {
-      keys.forEach(k => {
-        verifiedKeys.delete(k);
-        unverifiedKeys.add(k);
-      });
-    }
+    keys.forEach(k => {
+      verifiedKeys.add(k);
+      unverifiedKeys.delete(k);
+    });
   });
 
   saveVerificationState(verifiedKeys, unverifiedKeys);
@@ -180,18 +185,33 @@ export function setBatchParticipantsVerification(participants = [], shouldVerify
 }
 
 /**
- * Toggles verification status for a participant and persists changes in localStorage
+ * Verifies a participant and persists changes in localStorage.
+ * CRITICAL USER REQUIREMENT:
+ * "AND THEN MAIN POINT I I ONCE VERIED THAT NOT GO BACK TO UNVERIFIED."
+ * If already verified, keeps them verified and does not revert.
  */
 export function toggleVerificationStatus(participant) {
-  const { verifiedKeys } = getVerificationState();
+  const { verifiedKeys, unverifiedKeys } = getVerificationState();
   const keys = getParticipantKeys(participant);
 
   // Check if currently verified by any candidate key or participant flag
-  const isCurrentlyVerified = participant.isVerified !== undefined
+  const isCurrentlyVerified = participant && participant.isVerified !== undefined
     ? Boolean(participant.isVerified)
     : keys.some(k => verifiedKeys.has(k));
 
-  return setParticipantVerification(participant, !isCurrentlyVerified);
+  if (isCurrentlyVerified) {
+    // Once verified, cannot go back to unverified!
+    return { verifiedKeys, unverifiedKeys };
+  }
+
+  return setParticipantVerification(participant, true);
+}
+
+/**
+ * Alias for explicit verification
+ */
+export function verifySingleParticipant(participant) {
+  return setParticipantVerification(participant, true);
 }
 
 /**

@@ -388,20 +388,21 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
     const isSheetNo = ['no', 'n', 'unverified', 'non verified', 'not verified', 'false', '0', 'pending'].includes(rawVerifVal);
 
     // CRITICAL REQUIREMENT:
-    // When organizer enters 'yes' or 'no' in the Excel verification slide:
-    // That is the authoritative state from Google Sheets / Excel!
+    // 1. If marked YES in Excel, they are verified.
+    // 2. If organizer specifically verifies THIS participant in the website, they go to verified.
+    // 3. Once verified, they never go back to unverified.
     let isVerified = false;
     let verificationSource = 'default';
 
     if (isSheetYes) {
       isVerified = true;
       verificationSource = 'excel_yes';
-    } else if (isSheetNo) {
-      isVerified = false;
-      verificationSource = 'excel_no';
     } else if (isExplicitlyVerified) {
       isVerified = true;
       verificationSource = 'manual_verified';
+    } else if (isSheetNo) {
+      isVerified = false;
+      verificationSource = 'excel_no';
     } else if (isExplicitlyUnverified) {
       isVerified = false;
       verificationSource = 'manual_unverified';
@@ -554,15 +555,21 @@ export function normalizeRegistrationData(rawRows = [], headers = [], verificati
       let memberVerifSource = 'inherited';
 
       if (isMemberExplicitlyVerified) {
+        // Specifically verified in the website: this specific member goes to Verified!
         memberVerified = true;
         memberVerifSource = 'manual_verified';
       } else if (isMemberExplicitlyUnverified) {
         memberVerified = false;
         memberVerifSource = 'manual_unverified';
+      } else if (primary.verificationSource === 'excel_yes') {
+        // Inherited from original Excel verification slide row marked YES
+        memberVerified = true;
+        memberVerifSource = 'excel_inherited';
       } else {
-        // Team members inherit the verification status of their submission from the Excel verification slide
-        memberVerified = primary.isVerified;
-        memberVerifSource = primary.verificationSource || 'excel_inherited';
+        // If primary was manually verified in the website, or if Excel marked NO, or pending:
+        // Teammates STAY UNVERIFIED unless individually verified!
+        memberVerified = false;
+        memberVerifSource = 'team_member_unverified';
       }
 
       const memberParticipant = {

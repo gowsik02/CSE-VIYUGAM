@@ -110,19 +110,23 @@ export default function ParticipantDetailModal({
               </p>
             </div>
 
-            {onToggleVerify && (
+            {participant.isVerified ? (
+              <span
+                className="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-white text-emerald-800 border border-emerald-300 shadow-2xs select-none inline-flex items-center gap-1.5"
+                title="Verified (Permanent status)"
+              >
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Verified</span>
+              </span>
+            ) : onToggleVerify ? (
               <button
                 type="button"
                 onClick={() => onToggleVerify(participant)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-2xs transition-all active:scale-95 shrink-0 cursor-pointer ${
-                  participant.isVerified
-                    ? 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-300'
-                    : 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white'
-                }`}
+                className="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-2xs transition-all active:scale-95 shrink-0 cursor-pointer"
               >
-                {participant.isVerified ? 'Unverify' : 'Verify Now'}
+                Verify Now
               </button>
-            )}
+            ) : null}
           </div>
 
           {/* Key Attributes Grid */}
