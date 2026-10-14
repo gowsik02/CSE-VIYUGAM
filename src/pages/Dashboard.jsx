@@ -14,6 +14,7 @@ import {
   Sparkles,
   ExternalLink,
   ChevronRight,
+  ChevronLeft,
   Database,
   Users2,
   Crown,
@@ -23,7 +24,11 @@ import {
   Building,
   Filter,
   Shield,
+  FileCheck2,
+  FileX2,
+  Download,
 } from 'lucide-react';
+import { exportVerifiedReportPDF, exportNonVerifiedReportPDF } from '../utils/pdfExport';
 import {
   PieChart,
   Pie,
@@ -62,12 +67,47 @@ export default function Dashboard({
   const [teamSearch, setTeamSearch] = useState('');
   const [teamStatusFilter, setTeamStatusFilter] = useState('all'); // 'all', 'verified', 'pending'
 
+  // Excel Verification Roster States
+  const [rosterTab, setRosterTab] = useState('verified'); // 'verified', 'non_verified', 'all'
+  const [rosterSearch, setRosterSearch] = useState('');
+  const [rosterPage, setRosterPage] = useState(1);
+  const rosterPageSize = 10;
+
   const metrics = calculateSummaryMetrics(data);
   const collegeStats = calculateCollegeParticipation(data, 7);
   const paymentStats = calculatePaymentSummary(data);
   const eventStats = calculateEventParticipation(data);
   const qualityMetrics = calculateDataQuality(data);
   const teamsStats = useMemo(() => calculateTeamsSummary(data), [data]);
+
+  // Filtered Roster for Excel Verification Table
+  const rosterData = useMemo(() => {
+    let list = data;
+    if (rosterTab === 'verified') {
+      list = data.filter((d) => d.isVerified);
+    } else if (rosterTab === 'non_verified') {
+      list = data.filter((d) => !d.isVerified);
+    }
+
+    if (rosterSearch.trim()) {
+      const q = rosterSearch.toLowerCase().trim();
+      list = list.filter((d) => {
+        const matchesName = d.name && d.name.toLowerCase().includes(q);
+        const matchesCollege = d.college && d.college.toLowerCase().includes(q);
+        const matchesDept = d.department && d.department.toLowerCase().includes(q);
+        const matchesTeam = d.teamName && d.teamName.toLowerCase().includes(q);
+        const matchesId = d.id && d.id.toLowerCase().includes(q);
+        return matchesName || matchesCollege || matchesDept || matchesTeam || matchesId;
+      });
+    }
+    return list;
+  }, [data, rosterTab, rosterSearch]);
+
+  const rosterTotalPages = Math.ceil(rosterData.length / rosterPageSize) || 1;
+  const rosterPaginatedData = useMemo(() => {
+    const start = (rosterPage - 1) * rosterPageSize;
+    return rosterData.slice(start, start + rosterPageSize);
+  }, [rosterData, rosterPage]);
 
   const filteredTeams = useMemo(() => {
     return teamsStats.teamsList.filter((team) => {
@@ -142,14 +182,39 @@ export default function Dashboard({
               />
             </div>
 
-            <button
-              onClick={() => onNavigate('participants', 'new')}
-              className="w-full flex items-center justify-center space-x-2 py-2.5 px-4 bg-white text-burgundy-950 hover:bg-neutral-100 active:scale-[0.98] rounded-xl text-xs font-extrabold transition-all shadow-lg shadow-black/20 group cursor-pointer"
-            >
-              <Clock className="h-4 w-4 text-burgundy-800" />
-              <span>Verify Pending Submissions ({metrics.newCount})</span>
-              <ArrowRight className="h-4 w-4 text-burgundy-800 group-hover:translate-x-1 transition-transform" />
-            </button>
+            {/* Action Buttons in Hero */}
+            <div className="space-y-2 pt-1">
+              <button
+                onClick={() => onNavigate('participants', 'new')}
+                className="w-full flex items-center justify-center space-x-2 py-2 px-3.5 bg-white text-burgundy-950 hover:bg-neutral-100 active:scale-[0.98] rounded-xl text-xs font-extrabold transition-all shadow-md group cursor-pointer"
+              >
+                <Clock className="h-4 w-4 text-rose-700" />
+                <span>Audit Non-Verified Submissions ({metrics.newCount})</span>
+                <ArrowRight className="h-3.5 w-3.5 text-burgundy-800 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => exportVerifiedReportPDF(data)}
+                  className="flex items-center justify-center space-x-1.5 py-1.5 px-2.5 bg-emerald-600/90 hover:bg-emerald-600 text-white rounded-xl text-[11px] font-extrabold border border-emerald-400/40 shadow-sm transition-all active:scale-95 cursor-pointer"
+                  title="Download Verified Participants PDF report (YES in Excel)"
+                >
+                  <FileCheck2 className="h-3.5 w-3.5 text-white" />
+                  <span>Verified PDF ({metrics.verifiedCount})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => exportNonVerifiedReportPDF(data)}
+                  className="flex items-center justify-center space-x-1.5 py-1.5 px-2.5 bg-rose-600/90 hover:bg-rose-600 text-white rounded-xl text-[11px] font-extrabold border border-rose-400/40 shadow-sm transition-all active:scale-95 cursor-pointer"
+                  title="Download Non-Verified Participants Audit PDF report (NO in Excel)"
+                >
+                  <FileX2 className="h-3.5 w-3.5 text-white" />
+                  <span>Non-Verified PDF ({metrics.newCount})</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -194,24 +259,24 @@ export default function Dashboard({
         />
 
         <StatCard
-          title="New Registrations"
+          title="Non-Verified (NO in Excel)"
           value={formatNumber(metrics.newCount)}
-          subtitle="Needs verification"
+          subtitle="Marked NO in spreadsheet"
           icon={Clock}
           badgeText={metrics.newCount > 0 ? `${metrics.newCount} Pending` : 'All Done'}
-          badgeColor="bg-amber-100 text-amber-900"
+          badgeColor="bg-rose-100 text-rose-900 border border-rose-200"
           onClick={() => onNavigate('participants', 'new')}
-          accentColor="from-amber-500 to-amber-600"
-          iconBg="bg-amber-50 border-amber-200 text-amber-800"
+          accentColor="from-rose-500 to-rose-600"
+          iconBg="bg-rose-50 border-rose-200 text-rose-800"
         />
 
         <StatCard
-          title="Verified Registrations"
+          title="Verified (YES in Excel)"
           value={formatNumber(metrics.verifiedCount)}
-          subtitle="Confirmed participants"
+          subtitle="Marked YES in spreadsheet"
           icon={CheckCircle}
-          badgeText={`${metrics.verifiedRate}% Rate`}
-          badgeColor="bg-emerald-100 text-emerald-900"
+          badgeText={`${metrics.verifiedRate}% Verified`}
+          badgeColor="bg-emerald-100 text-emerald-900 border border-emerald-200"
           onClick={() => onNavigate('participants', 'verified')}
           accentColor="from-emerald-500 to-emerald-600"
           iconBg="bg-emerald-50 border-emerald-200 text-emerald-800"
@@ -363,6 +428,244 @@ export default function Dashboard({
               className="text-burgundy-800 font-bold text-[11px] hover:underline"
             >
               Inspect Institutional Roster →
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      {/* 📋 Dedicated Section: Excel Verification Roster (YES vs NO in Excel Slide) */}
+      <div id="excel-roster-section" className="card-elevated rounded-2xl p-5 sm:p-6 space-y-4 bg-white border border-slate-200">
+        
+        {/* Roster Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 shadow-2xs">
+              <ShieldCheck className="h-5 w-5 text-emerald-700" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 font-outfit uppercase tracking-wider flex items-center gap-2">
+                <span>Excel Verification Roster (YES vs NO)</span>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200 font-mono font-bold">
+                  {metrics.verifiedCount} Verified / {metrics.newCount} Non-Verified
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                Official classification from the Excel verification slide column. Download corresponding Verified or Non-Verified PDF reports.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick PDF Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => exportVerifiedReportPDF(data)}
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-xs font-bold text-emerald-900 hover:bg-emerald-100 transition-all shadow-2xs active:scale-95 cursor-pointer"
+            >
+              <FileCheck2 className="h-3.5 w-3.5 text-emerald-700" />
+              <span>Download Verified PDF ({metrics.verifiedCount})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => exportNonVerifiedReportPDF(data)}
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-rose-300 bg-rose-50 text-xs font-bold text-rose-900 hover:bg-rose-100 transition-all shadow-2xs active:scale-95 cursor-pointer"
+            >
+              <FileX2 className="h-3.5 w-3.5 text-rose-700" />
+              <span>Download Non-Verified PDF ({metrics.newCount})</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar & Tab Selectors */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Tabs */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-bold shrink-0">
+            <button
+              type="button"
+              onClick={() => { setRosterTab('verified'); setRosterPage(1); }}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                rosterTab === 'verified'
+                  ? 'bg-white text-emerald-950 border border-emerald-200 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+              <span>Verified Names (YES)</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-mono">
+                {metrics.verifiedCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setRosterTab('non_verified'); setRosterPage(1); }}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                rosterTab === 'non_verified'
+                  ? 'bg-white text-rose-950 border border-rose-200 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Clock className="h-3.5 w-3.5 text-rose-600" />
+              <span>Non-Verified Names (NO)</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-100 text-rose-800 font-mono">
+                {metrics.newCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setRosterTab('all'); setRosterPage(1); }}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                rosterTab === 'all'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>All ({data.length})</span>
+            </button>
+          </div>
+
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={rosterSearch}
+              onChange={(e) => { setRosterSearch(e.target.value); setRosterPage(1); }}
+              placeholder="Search by participant, college, team..."
+              className="pl-8 pr-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-xl bg-slate-50/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700 transition-all w-full sm:w-64"
+            />
+          </div>
+        </div>
+
+        {/* Roster Table */}
+        <div className="overflow-x-auto border border-slate-100 rounded-xl">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 text-slate-700 font-bold uppercase text-[10px]">
+              <tr>
+                <th className="table-header-cell">#</th>
+                <th className="table-header-cell">Participant Name</th>
+                <th className="table-header-cell">College / Institution</th>
+                <th className="table-header-cell">Dept & Year</th>
+                <th className="table-header-cell">Team Name</th>
+                <th className="table-header-cell">Excel Verification</th>
+                <th className="table-header-cell text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {rosterPaginatedData.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-slate-400 font-medium">
+                    No participants match current verification filter.
+                  </td>
+                </tr>
+              ) : (
+                rosterPaginatedData.map((item, idx) => (
+                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="table-body-cell font-mono text-slate-400 text-[11px] font-bold">
+                      #{(rosterPage - 1) * rosterPageSize + idx + 1}
+                    </td>
+
+                    <td className="table-body-cell">
+                      <div
+                        onClick={() => onSelectParticipant && onSelectParticipant(item)}
+                        className="font-bold text-slate-900 hover:text-burgundy-800 cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>{item.name}</span>
+                        {item.isTeamMember ? (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                            Member
+                          </span>
+                        ) : item.teamName ? (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200">
+                            Lead
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono">{item.id}</div>
+                    </td>
+
+                    <td className="table-body-cell font-medium text-slate-700 max-w-[200px] truncate" title={item.college}>
+                      {item.college}
+                    </td>
+
+                    <td className="table-body-cell text-slate-600">
+                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-semibold text-[10px]">
+                        {item.department || 'CSE'} ({item.year || 'N/A'})
+                      </span>
+                    </td>
+
+                    <td className="table-body-cell text-slate-700 font-medium">
+                      {item.teamName || <span className="text-slate-400 italic">Individual</span>}
+                    </td>
+
+                    <td className="table-body-cell">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                        item.isVerified
+                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                          : 'bg-rose-100 text-rose-900 border border-rose-200'
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${item.isVerified ? 'bg-emerald-600' : 'bg-rose-600'}`} />
+                        <span>{item.isVerified ? 'YES (Verified)' : 'NO (Non-Verified)'}</span>
+                      </span>
+                    </td>
+
+                    <td className="table-body-cell text-center">
+                      <div className="flex items-center justify-center space-x-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onToggleVerify && onToggleVerify(item)}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all active:scale-95 cursor-pointer ${
+                            item.isVerified
+                              ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                              : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                          }`}
+                        >
+                          {item.isVerified ? 'Unverify' : 'Verify'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSelectParticipant && onSelectParticipant(item)}
+                          className="px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 text-[10px] font-semibold cursor-pointer"
+                        >
+                          Details
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Roster Pagination Controls */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs text-slate-600">
+          <div>
+            Showing <strong className="text-slate-900">{(rosterPage - 1) * rosterPageSize + 1}</strong> to{' '}
+            <strong className="text-slate-900">{Math.min(rosterPage * rosterPageSize, rosterData.length)}</strong> of{' '}
+            <strong className="text-slate-900">{rosterData.length}</strong> attendees
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setRosterPage(p => Math.max(p - 1, 1))}
+              disabled={rosterPage === 1}
+              className="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="font-semibold text-slate-800">
+              Page {rosterPage} of {rosterTotalPages}
+            </span>
+            <button
+              onClick={() => setRosterPage(p => Math.min(p + 1, rosterTotalPages))}
+              disabled={rosterPage === rosterTotalPages}
+              className="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
+            >
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>

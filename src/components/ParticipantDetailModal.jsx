@@ -96,17 +96,17 @@ export default function ParticipantDetailModal({
           <div className={`p-4 rounded-2xl border flex items-center justify-between ${
             participant.isVerified
               ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
-              : 'bg-amber-50/90 border-amber-200 text-amber-950'
+              : 'bg-rose-50/90 border-rose-200 text-rose-950'
           }`}>
             <div>
               <div className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
-                <span className={`h-2 w-2 rounded-full ${participant.isVerified ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                <span>{participant.isVerified ? 'Verified Registration' : 'New / Pending Verification'}</span>
+                <span className={`h-2 w-2 rounded-full ${participant.isVerified ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                <span>{participant.isVerified ? 'Verified Attendee (YES in Excel)' : 'Non-Verified Submission (NO in Excel)'}</span>
               </div>
               <p className="text-[11px] opacity-80 mt-0.5 font-medium">
                 {participant.isVerified
-                  ? 'Confirmed participant — Counted in Verified Total Collections.'
-                  : 'Submission awaiting organizer audit.'}
+                  ? 'Confirmed participant — Verified in Excel registration slide.'
+                  : 'Classified as Non-Verified in Excel registration slide.'}
               </p>
             </div>
 
@@ -136,9 +136,11 @@ export default function ParticipantDetailModal({
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Registration Fee</span>
-              <span className="font-extrabold text-slate-900 mt-1 block text-base font-mono">
-                {formatCurrency(participant.amount)}
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Excel Verification</span>
+              <span className={`font-extrabold mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                participant.isVerified ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'
+              }`}>
+                {participant.excelVerification || (participant.isVerified ? 'YES' : 'NO')}
               </span>
             </div>
 

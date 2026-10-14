@@ -170,9 +170,9 @@ export default function FilterPanel({
                       </div>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold shrink-0 ml-2 ${
-                      item.isVerified ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'
+                      item.isVerified ? 'bg-emerald-100 text-emerald-900 border border-emerald-200' : 'bg-rose-100 text-rose-900 border border-rose-200'
                     }`}>
-                      {item.isVerified ? 'Verified' : 'Pending'}
+                      {item.isVerified ? 'Verified (YES)' : 'Non-Verified (NO)'}
                     </span>
                   </div>
                 ))}
@@ -195,7 +195,7 @@ export default function FilterPanel({
           </select>
         </div>
 
-        {/* Payment Status Filter */}
+        {/* Payment / Verification Status Filter */}
         <div className="md:col-span-6 lg:col-span-2">
           <select
             value={selectedStatus}
@@ -203,8 +203,8 @@ export default function FilterPanel({
             className="w-full px-3 py-2 text-xs font-semibold border border-slate-200 rounded-xl bg-slate-50/70 hover:bg-white text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-burgundy-800/20 focus:border-burgundy-800 transition-all shadow-2xs cursor-pointer"
           >
             <option value="All">⚡ All Statuses</option>
-            <option value="Verified">✅ Verified Only</option>
-            <option value="New">⏳ New / Pending</option>
+            <option value="Verified">✅ Verified Names (YES in Excel)</option>
+            <option value="New">❌ Non-Verified Names (NO in Excel)</option>
           </select>
         </div>
 
